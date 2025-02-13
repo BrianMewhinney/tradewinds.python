@@ -2,11 +2,14 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV, StratifiedKFold
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, make_scorer, f1_score
 from sklearn.inspection import permutation_importance
 import time
 from datetime import datetime
 from sklearn.feature_selection import RFE
+
+def custom_scorer(y_true, y_pred):
+    return f1_score(y_true, y_pred, average=None)[0]
 
 def random_forest_processing(x_file, y_file):
     start_time = time.time()
@@ -38,7 +41,7 @@ def random_forest_processing(x_file, y_file):
     }
     stratified_kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
     #grid_search = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=stratified_kfold, scoring='f1_macro', n_jobs=-1)
-    grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
+    grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring=make_scorer(custom_scorer), random_state=42)
     grid_search.fit(X_train, y_train)
 
     execution_time = time.time() - start_time
