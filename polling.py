@@ -47,7 +47,10 @@ def process_directory(input_dir, output_dir, bestAccuracy):
             if os.path.isfile(config_file) and os.path.isfile(x_file) and os.path.isfile(y_file):
                 with open(config_file, 'r') as f:
                     config = json.load(f)
-                print(config)
+
+                #for feature in config['testFeatures']:
+                #    print(feature['key'])
+                #print(config)
                 results = start_test(config, x_file, y_file)
                 accuracy = results['test_accuracy']
                 if accuracy > bestAccuracy:

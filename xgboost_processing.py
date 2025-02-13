@@ -2,11 +2,14 @@ import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split, RandomizedSearchCV, GridSearchCV, StratifiedKFold
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix,  make_scorer, f1_score
 from sklearn.inspection import permutation_importance
 import time
 from datetime import datetime
 import os
+
+def custom_scorer(y_true, y_pred):
+    return f1_score(y_true, y_pred, average=None)[0]
 
 def xgboost_processing(x_file, y_file):
     start_time = time.time()
@@ -21,8 +24,6 @@ def xgboost_processing(x_file, y_file):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
     print(f"Training set size: {len(X_train)}  Test set size: {len(X_test)}")
-    for feature in feature_names:
-        print(feature)
 
     param_grid = {
         'n_estimators': [750, 1000, 1500, 2000],
@@ -34,7 +35,8 @@ def xgboost_processing(x_file, y_file):
     }
     stratified_kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
     #grid_search = GridSearchCV(XGBClassifier(eval_metric='mlogloss', random_state=42), param_grid, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro')
-    grid_search = RandomizedSearchCV(XGBClassifier(eval_metric='mlogloss', random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
+    #grid_search = RandomizedSearchCV(XGBClassifier(eval_metric='mlogloss', random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
+    grid_search = RandomizedSearchCV(XGBClassifier(eval_metric='mlogloss', random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring=make_scorer(custom_scorer), random_state=42)
     grid_search.fit(X_train, y_train)
 
     execution_time = time.time() - start_time
