@@ -5,6 +5,7 @@ import time
 import pandas as pd
 import numpy as np
 from xgboost_processing import xgboost_processing
+from random_forest import random_forest_processing
 
 
 def start_test(config, x_file, y_file):
@@ -12,15 +13,12 @@ def start_test(config, x_file, y_file):
     #print("Running test with config:", config)
 
     # Example of calling your external processing function
-    results, importances = xgboost_processing(x_file, y_file)
+    results, importances = random_forest_processing(x_file, y_file)
+#    results, importances = xgboost_processing(x_file, y_file)
     return results
 
 
 def make_serializable(obj):
-    """
-    Helper function to make objects JSON serializable.
-    For example, it converts numpy types and pandas objects to native Python types.
-    """
     if isinstance(obj, (pd.DataFrame, pd.Series)):
         return obj.to_dict()  # Convert pandas objects to dictionaries
     elif isinstance(obj, (np.generic, np.ndarray)):
@@ -28,13 +26,10 @@ def make_serializable(obj):
     elif isinstance(obj, (np.int64, np.int32, np.float64, np.float32)):
         return obj.item()  # Convert numpy scalars to Python scalars
     elif isinstance(obj, dict):
-        # Recursively ensure all dictionary keys and values are serializable
         return {make_serializable(k): make_serializable(v) for k, v in obj.items()}
     elif isinstance(obj, list):
-        # Recursively ensure all list elements are serializable
         return [make_serializable(x) for x in obj]
     elif isinstance(obj, tuple):
-        # Convert tuples to lists and ensure elements are serializable
         return tuple(make_serializable(x) for x in obj)
     else:
         return obj  # Return as-is if it's already serializable
@@ -52,8 +47,7 @@ def process_directory(input_dir, output_dir, bestAccuracy):
             if os.path.isfile(config_file) and os.path.isfile(x_file) and os.path.isfile(y_file):
                 with open(config_file, 'r') as f:
                     config = json.load(f)
-
-                # Call the external method
+                print(config)
                 results = start_test(config, x_file, y_file)
                 accuracy = results['test_accuracy']
                 if accuracy > bestAccuracy:
