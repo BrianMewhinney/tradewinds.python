@@ -21,7 +21,7 @@ class EmphasizeFeatures:
     def transform(self, X):
         X = X.copy()
         X[:, 0] *= 4  # Emphasize feature 0
-        X[:, 3] *= 2  # Emphasize feature 3
+#        X[:, 3] *= 2  # Emphasize feature 3
         return X
 
 def random_forest_processing(x_file, y_file):
@@ -49,12 +49,18 @@ def random_forest_processing(x_file, y_file):
     class_weight_dict = {i: w for i, w in enumerate(class_weights)}
 
     param_grid = {
-        'classifier__n_estimators': [750, 1000, 1500, 2000],
-        'classifier__max_depth': [5, 10, 20],
-        'classifier__min_samples_split': [2, 5, 10, 15],
-        'classifier__min_samples_leaf': [1, 5, 10],
-        'classifier__max_features': ['log2', 'sqrt'],
-        'classifier__class_weight': [None, 'balanced']
+#        'classifier__n_estimators': [750, 1000, 1500, 2000],
+#        'classifier__max_depth': [5, 10, 20],
+#        'classifier__min_samples_split': [2, 5, 10, 15],
+#        'classifier__min_samples_leaf': [1, 5, 10],
+#        'classifier__max_features': ['log2', 'sqrt'],
+#        'classifier__class_weight': [None, 'balanced']
+        'n_estimators': [750, 1000, 1500, 2000],
+        'max_depth': [5, 10, 20],
+        'min_samples_split': [2, 5, 10, 15],
+        'min_samples_leaf': [1, 5, 10],
+        'max_features': ['log2', 'sqrt'],
+        'class_weight': [None, 'balanced']
         #'class_weight': [class_weight_dict]
     }
 
@@ -66,8 +72,8 @@ def random_forest_processing(x_file, y_file):
     stratified_kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
     #grid_search = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=stratified_kfold, scoring='f1_macro', n_jobs=-1)
     #grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
-    #grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring=make_scorer(custom_scorer), random_state=42)
-    grid_search = RandomizedSearchCV(pipeline, param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
+    grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring=make_scorer(custom_scorer), random_state=42)
+    #grid_search = RandomizedSearchCV(pipeline, param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
     grid_search.fit(X_train, y_train)
 
     execution_time = time.time() - start_time
