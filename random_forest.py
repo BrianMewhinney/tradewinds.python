@@ -8,9 +8,21 @@ import time
 from datetime import datetime
 from sklearn.feature_selection import RFE
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 def custom_scorer(y_true, y_pred):
     return f1_score(y_true, y_pred, average=None)[0]
+
+class EmphasizeFeatures:
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        X[:, 0] *= 2  # Emphasize feature 0
+        X[:, 3] *= 2  # Emphasize feature 3
+        return X
 
 def random_forest_processing(x_file, y_file):
     start_time = time.time()
@@ -37,19 +49,25 @@ def random_forest_processing(x_file, y_file):
     class_weight_dict = {i: w for i, w in enumerate(class_weights)}
 
     param_grid = {
-        'n_estimators': [750, 1000, 1500, 2000],
-        'max_depth': [5, 10, 20],
-        'min_samples_split': [2, 5, 10, 15],
-        'min_samples_leaf': [1, 5, 10],
-        'max_features': ['log2', 'sqrt'],
-        'class_weight': [None, 'balanced']
+        'classifier__n_estimators': [750, 1000, 1500, 2000],
+        'classifier__max_depth': [5, 10, 20],
+        'classifier__min_samples_split': [2, 5, 10, 15],
+        'classifier__min_samples_leaf': [1, 5, 10],
+        'classifier__max_features': ['log2', 'sqrt'],
+        'classifier__class_weight': [None, 'balanced']
         #'class_weight': [class_weight_dict]
     }
 
+    pipeline = Pipeline([
+        ('emphasize', EmphasizeFeatures()),
+        ('scaler', StandardScaler()),
+        ('classifier', RandomForestClassifier(random_state=42))
+    ])
     stratified_kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
     #grid_search = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=stratified_kfold, scoring='f1_macro', n_jobs=-1)
-    grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
+    #grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
     #grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring=make_scorer(custom_scorer), random_state=42)
+    grid_search = RandomizedSearchCV(pipeline, param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
     grid_search.fit(X_train, y_train)
 
     execution_time = time.time() - start_time
@@ -74,13 +92,13 @@ def random_forest_processing(x_file, y_file):
     print(f"Overall Test Accuracy: {accuracy:.6f}   Best Score: {grid_search.best_score_:.6f}")
     print(f"Per-Class Accuracy: {per_class_accuracy}")
 
-    importances = best_model.feature_importances_
+    importances = best_model.named_steps['classifier'].feature_importances_
     indices = np.argsort(importances)[::-1]
     results['feature_importance'] = {f"{f + 1}": (indices[f], importances[indices[f]]) for f in range(X_train.shape[1])}
     for idx in indices:
         print(f"{idx}: {feature_names[idx]}: {importances[idx]}")
 
-    result = permutation_importance(best_model, X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
+    result = permutation_importance(best_model.named_steps['classifier'], X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
 
     sorted_idx = result.importances_mean.argsort()[::-1]
     print('')
