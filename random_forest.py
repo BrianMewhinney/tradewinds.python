@@ -20,7 +20,7 @@ class EmphasizeFeatures:
 
     def transform(self, X):
         X = X.copy()
-        X[:, 0] *= 2  # Emphasize feature 0
+        X[:, 0] *= 4  # Emphasize feature 0
         X[:, 3] *= 2  # Emphasize feature 3
         return X
 
