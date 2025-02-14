@@ -17,17 +17,10 @@ def custom_scorer(y_true, y_pred):
 def random_forest_processing(x_file, y_file):
     start_time = time.time()
     results = {}
-    print(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Starting Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     X_df = pd.read_csv(x_file, header=0)
-    if 'w_diffcategory' in X_df.columns:
-        X_df['w_diffcategory'] = X_df['w_diffcategory'].astype('category')
-        # Use one-hot encoding
-        X_df = pd.get_dummies(X_df, columns=['w_diffcategory'], prefix='sig')
-
-    # Update feature names after one-hot encoding
     feature_names = X_df.columns
-
     X = X_df.values
     y = pd.read_csv(y_file, header=None).values.flatten()
 
@@ -41,7 +34,6 @@ def random_forest_processing(x_file, y_file):
         'min_samples_leaf': [1, 5, 10],
         'max_features': ['log2', 'sqrt'],
         'class_weight': [None, 'balanced']
-        #'class_weight': [class_weight_dict]
     }
     smote = SMOTE(random_state=42)
     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
@@ -58,7 +50,6 @@ def random_forest_processing(x_file, y_file):
 
 #    print(f"Best Parameters: {grid_search.best_params_}")
     best_model = grid_search.best_estimator_
-    #best_model.fit(X_train_resampled, y_train_resampled)
 
     y_pred = best_model.predict(X_test)  # Standardize X_test
 
@@ -82,15 +73,12 @@ def random_forest_processing(x_file, y_file):
     print(f"Per-Class Accuracy: {per_class_accuracy}")
 
     importances = best_model.feature_importances_
-    #importances = best_model.named_steps['classifier'].feature_importances_
-    """
     indices = np.argsort(importances)[::-1]
     results['feature_importance'] = {f"{f + 1}": (indices[f], importances[indices[f]]) for f in range(X_train_resampled.shape[1])}
     for idx in indices:
         print(f"{idx}: {feature_names[idx]}: {importances[idx]}")
 
-#    result = permutation_importance(best_model, X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
-    result = permutation_importance(best_model.named_steps['classifier'], X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
+    result = permutation_importance(best_model, X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
 
     sorted_idx = result.importances_mean.argsort()[::-1]
     print('')
@@ -98,7 +86,6 @@ def random_forest_processing(x_file, y_file):
         print(f"{idx}: {feature_names[idx]}: {result.importances_mean[idx]}")
 
     results['permutation_importance'] = {idx: result.importances_mean[idx] for idx in sorted_idx}
-    """
     output_dir = os.path.dirname(x_file)
     output_dir = output_dir.replace("input", "output")
     os.makedirs(output_dir, exist_ok=True)

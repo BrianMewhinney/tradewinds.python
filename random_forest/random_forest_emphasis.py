@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV, StratifiedKFold
-from sklearn.metrics import accuracy_score, confusion_matrix, make_scorer, f1_score, precision_score
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score
 from sklearn.inspection import permutation_importance
 import time
 from datetime import datetime
@@ -12,9 +12,6 @@ from sklearn.preprocessing import StandardScaler
 import os
 import shutil
 from imblearn.over_sampling import SMOTE
-
-def custom_scorer(y_true, y_pred):
-    return f1_score(y_true, y_pred, average=None)[1]
 
 class EmphasizeFeatures:
     def fit(self, X, y=None):
@@ -56,7 +53,7 @@ def random_forest_processing(x_file, y_file):
         'classifier__min_samples_leaf': [1, 5, 10],
         'classifier__max_features': ['log2', 'sqrt'],
         'classifier__class_weight': [None, 'balanced']
-
+    }
     pipeline = Pipeline([
         ('emphasize', EmphasizeFeatures()),
     #    ('scaler', StandardScaler()),
@@ -101,15 +98,12 @@ def random_forest_processing(x_file, y_file):
     print(f"Per-Class Precision: {per_class_precision}")
     print(f"Per-Class Accuracy: {per_class_accuracy}")
 
-    importances = best_model.feature_importances_
-    #importances = best_model.named_steps['classifier'].feature_importances_
-    """
+    importances = best_model.named_steps['classifier'].feature_importances_
     indices = np.argsort(importances)[::-1]
     results['feature_importance'] = {f"{f + 1}": (indices[f], importances[indices[f]]) for f in range(X_train_resampled.shape[1])}
     for idx in indices:
         print(f"{idx}: {feature_names[idx]}: {importances[idx]}")
 
-#    result = permutation_importance(best_model, X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
     result = permutation_importance(best_model.named_steps['classifier'], X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
 
     sorted_idx = result.importances_mean.argsort()[::-1]
@@ -118,7 +112,6 @@ def random_forest_processing(x_file, y_file):
         print(f"{idx}: {feature_names[idx]}: {result.importances_mean[idx]}")
 
     results['permutation_importance'] = {idx: result.importances_mean[idx] for idx in sorted_idx}
-    """
     output_dir = os.path.dirname(x_file)
     output_dir = output_dir.replace("input", "output")
     os.makedirs(output_dir, exist_ok=True)

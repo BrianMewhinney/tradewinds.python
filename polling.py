@@ -6,7 +6,8 @@ import pandas as pd
 import numpy as np
 from xgboost_processing import xgboost_processing
 from random_forest.random_forest import random_forest_processing
-
+#from random_forest.random_forest_custom_score import random_forest_processing
+#from random_forest.random_forest_emphasis import random_forest_processing
 
 def start_test(config, x_file, y_file):
     # Placeholder for the external method. Replace with the actual implementation.
