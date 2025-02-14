@@ -35,7 +35,7 @@ def make_serializable(obj):
         return obj  # Return as-is if it's already serializable
 
 
-def process_directory(input_dir, output_dir, bestAccuracy):
+def process_directory(input_dir, output_dir, bestPrecision):
     for subdir in os.listdir(input_dir):
         subdir_path = os.path.join(input_dir, subdir)
 
@@ -52,11 +52,11 @@ def process_directory(input_dir, output_dir, bestAccuracy):
                 #    print(feature['key'])
                 #print(config)
                 results = start_test(config, x_file, y_file)
-                accuracy = results['test_accuracy']
-                if accuracy > bestAccuracy:
-                    bestAccuracy = accuracy
+                precision = results['test_precision']
+                if precision > bestPrecision:
+                    bestPrecision = precision
 
-                print(f"{subdir}:  Processing complete:  Accuracy: {accuracy:.6f}  Best Accuracy: {bestAccuracy:.6f}\n")
+                print(f"{subdir}:  Processing complete:  Precision: {precision:.6f}  Best Precision: {bestPrecision:.6f}\n")
 
                 serializable_results = make_serializable(results)
 
@@ -71,16 +71,19 @@ def process_directory(input_dir, output_dir, bestAccuracy):
                 with open(out_config_file, 'w') as f:
                     json.dump(config, f, indent=4)
 
+                in_f_file = os.path.join(subdir_path, 'f.csv')
+                out_f_file = os.path.join(output_subdir_path, 'f.csv')
+                shutil.copy(in_f_file, out_f_file)
                 shutil.rmtree(subdir_path)
-    return bestAccuracy
+    return bestPrecision
 
 
 def main():
     input_dir = '/Users/brianmewhinney/dev/external/tradewinds-data/input'
     output_dir = '/Users/brianmewhinney/dev/external/tradewinds-data/output'
-    bestAccuracy = 0
+    bestPrecision = 0
     while True:
-        bestAccuracy = process_directory(input_dir, output_dir, bestAccuracy)
+        bestPrecision = process_directory(input_dir, output_dir, bestPrecision)
         time.sleep(1)  # Poll every 10 seconds
 
 

@@ -24,6 +24,8 @@ def xgboost_processing(x_file, y_file):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
     print(f"Training set size: {len(X_train)}  Test set size: {len(X_test)}")
+    for feature in feature_names:
+        print(feature)
 
     param_grid = {
         'n_estimators': [750, 1000, 1500, 2000],
