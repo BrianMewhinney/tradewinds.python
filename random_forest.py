@@ -10,6 +10,7 @@ from sklearn.feature_selection import RFE
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+import os
 
 def custom_scorer(y_true, y_pred):
     return f1_score(y_true, y_pred, average=None)[0]
@@ -112,6 +113,12 @@ def random_forest_processing(x_file, y_file):
         print(f"{idx}: {feature_names[idx]}: {result.importances_mean[idx]}")
 
     results['permutation_importance'] = {idx: result.importances_mean[idx] for idx in sorted_idx}
+    output_dir = os.path.dirname(x_file)
+    output_dir = output_dir.replace("input", "output")
+    os.makedirs(output_dir, exist_ok=True)
+    print(f'Saving files to {output_dir}')
+    np.savetxt(os.path.join(output_dir, "y_pred.csv"), y_pred, delimiter=",")
+    np.savetxt(os.path.join(output_dir, "X_test.csv"), X_test, delimiter=",", header=",".join(feature_names), comments='')
     print(f"Execution Time: {time.time() - start_time:.2f} seconds\n")
 
     return results, importances
