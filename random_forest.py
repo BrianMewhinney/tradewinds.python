@@ -98,13 +98,13 @@ def random_forest_processing(x_file, y_file):
     print(f"Overall Test Accuracy: {accuracy:.6f}   Best Score: {grid_search.best_score_:.6f}")
     print(f"Per-Class Accuracy: {per_class_accuracy}")
 
-    importances = best_model.named_steps['classifier'].feature_importances_
+    importances = best_model.feature_importances_
     indices = np.argsort(importances)[::-1]
     results['feature_importance'] = {f"{f + 1}": (indices[f], importances[indices[f]]) for f in range(X_train.shape[1])}
     for idx in indices:
         print(f"{idx}: {feature_names[idx]}: {importances[idx]}")
 
-    result = permutation_importance(best_model.named_steps['classifier'], X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
+    result = permutation_importance(best_model, X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
 
     sorted_idx = result.importances_mean.argsort()[::-1]
     print('')
