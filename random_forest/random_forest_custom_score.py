@@ -12,7 +12,7 @@ import shutil
 from imblearn.over_sampling import SMOTE
 
 def custom_scorer(y_true, y_pred):
-    return f1_score(y_true, y_pred, average=None)[1]
+    return f1_score(y_true, y_pred, average=None)[0]
 
 def random_forest_processing(x_file, y_file):
     start_time = time.time()
