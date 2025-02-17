@@ -46,8 +46,9 @@ def random_forest_processing(x_file, y_file):
     print(f"Training set size: {len(X_train)}  Test set size: {len(X_test)}")
 
     # Compute class weights
-    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
-    class_weight_dict = {i: w for i, w in enumerate(class_weights)}
+    #class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
+    #class_weight_dict = {i: w for i, w in enumerate(class_weights)}
+    #print(class_weight_dict)
 
     param_grid = {
         'n_estimators': [750, 1000, 1500, 2000],
@@ -55,16 +56,16 @@ def random_forest_processing(x_file, y_file):
         'min_samples_split': [2, 5, 10, 15],
         'min_samples_leaf': [1, 5, 10],
         'max_features': ['log2', 'sqrt'],
-        'class_weight': [None, 'balanced']
+        'class_weight': ['balanced']
         #'class_weight': [class_weight_dict]
     }
-    smote = SMOTE(random_state=42)
-    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    #smote = SMOTE(random_state=42)
+    #X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
 
     stratified_kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
     #grid_search = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=stratified_kfold, scoring='f1_macro', n_jobs=-1)
     grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
-    grid_search.fit(X_train_resampled, y_train_resampled)
+    grid_search.fit(X_train, y_train)
 
     execution_time = time.time() - start_time
     results['start_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -100,7 +101,7 @@ def random_forest_processing(x_file, y_file):
     importances = best_model.feature_importances_
 
     indices = np.argsort(importances)[::-1]
-    results['feature_importance'] = {f"{f + 1}": (indices[f], importances[indices[f]]) for f in range(X_train_resampled.shape[1])}
+    results['feature_importance'] = {f"{f + 1}": (indices[f], importances[indices[f]]) for f in range(X_train.shape[1])}
     #for idx in indices:
     #    print(f"{idx}: {feature_names[idx]}: {importances[idx]}")
 
