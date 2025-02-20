@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 import os
 import shutil
 from imblearn.over_sampling import SMOTE
+from io import StringIO
 
 class EmphasizeFeatures:
     def fit(self, X, y=None):
@@ -112,14 +113,29 @@ def random_forest_processing(x_file, y_file):
         print(f"{idx}: {feature_names[idx]}: {result.importances_mean[idx]}")
 
     results['permutation_importance'] = {idx: result.importances_mean[idx] for idx in sorted_idx}
-    output_dir = os.path.dirname(x_file)
-    output_dir = output_dir.replace("input", "output")
-    os.makedirs(output_dir, exist_ok=True)
-    print(f'Saving files to {output_dir}')
-    np.savetxt(os.path.join(output_dir, "y_pred.csv"), y_pred, delimiter=",")
-    np.savetxt(os.path.join(output_dir, "y_test.csv"), y_test, delimiter=",")
-    np.savetxt(os.path.join(output_dir, "X_test.csv"), X_test, delimiter=",", header=",".join(feature_names), comments='')
-    shutil.copy(x_file, os.path.join(output_dir, "x.csv"))
-    print(f"Execution Time: {time.time() - start_time:.2f} seconds\n")
+    #output_dir = os.path.dirname(x_file)
+    #output_dir = output_dir.replace("input", "output")
+    #os.makedirs(output_dir, exist_ok=True)
+    #print(f'Saving files to {output_dir}')
+    #np.savetxt(os.path.join(output_dir, "y_pred.csv"), y_pred, delimiter=",")
+    #np.savetxt(os.path.join(output_dir, "y_test.csv"), y_test, delimiter=",")
+    #np.savetxt(os.path.join(output_dir, "X_test.csv"), X_test, delimiter=",", header=",".join(feature_names), comments='')
+    #shutil.copy(x_file, os.path.join(output_dir, "x.csv"))
 
-    return results, importances
+    # Convert arrays to CSV strings
+    y_pred_csv = StringIO()
+    y_test_csv = StringIO()
+    X_test_csv = StringIO()
+
+    np.savetxt(y_pred_csv, y_pred, delimiter=",")
+    np.savetxt(y_test_csv, y_test, delimiter=",")
+    np.savetxt(X_test_csv, X_test, delimiter=",", header=",".join(feature_names), comments='')
+
+    # Reset StringIO cursor to the start
+    y_pred_csv.seek(0)
+    y_test_csv.seek(0)
+    X_test_csv.seek(0)
+
+    # Return CSV data as strings
+    print(f"Execution Time: {time.time() - start_time:.2f} seconds\n")
+    return y_pred_csv.getvalue(), y_test_csv.getvalue(), X_test_csv.getvalue(), results, importances

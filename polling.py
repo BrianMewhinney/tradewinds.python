@@ -10,12 +10,7 @@ from random_forest.random_forest import random_forest_processing
 #from random_forest.random_forest_emphasis import random_forest_processing
 
 def start_test(config, x_file, y_file):
-    # Placeholder for the external method. Replace with the actual implementation.
-    #print("Running test with config:", config)
-
-    # Example of calling your external processing function
     results, importances = random_forest_processing(x_file, y_file)
-#    results, importances = xgboost_processing(x_file, y_file)
     return results
 
 
@@ -49,10 +44,8 @@ def process_directory(input_dir, output_dir, bestPrecision):
                 with open(config_file, 'r') as f:
                     config = json.load(f)
 
-                #for feature in config['testFeatures']:
-                #    print(feature['key'])
-                #print(config)
                 results = start_test(config, x_file, y_file)
+
                 precision = results['test_precision']
                 if precision > bestPrecision:
                     bestPrecision = precision

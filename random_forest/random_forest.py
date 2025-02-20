@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 import os
 import shutil
 from imblearn.over_sampling import SMOTE
+from io import StringIO
 
 def custom_scorer(y_true, y_pred):
     return f1_score(y_true, y_pred, average=None)[1]
@@ -30,25 +31,19 @@ def random_forest_processing(x_file, y_file):
     results = {}
     print(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    X_df = pd.read_csv(x_file, header=0)
-    if 'w_diffcategory' in X_df.columns:
-        X_df['w_diffcategory'] = X_df['w_diffcategory'].astype('category')
-        # Use one-hot encoding
-        X_df = pd.get_dummies(X_df, columns=['w_diffcategory'], prefix='sig')
-
-    # Update feature names after one-hot encoding
+    # Read CSV data from strings
+    X_df = pd.read_csv(StringIO(x_file), header=0)
     feature_names = X_df.columns
-
     X = X_df.values
-    y = pd.read_csv(y_file, header=None).values.flatten()
+    y = pd.read_csv(StringIO(y_file), header=None).values.flatten()
+
+    #X_df = pd.read_csv(x_file, header=0)
+    #feature_names = X_df.columns
+    #X = X_df.values
+    #y = pd.read_csv(y_file, header=None).values.flatten()
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, shuffle=False)
     print(f"Training set size: {len(X_train)}  Test set size: {len(X_test)}")
-
-    # Compute class weights
-    #class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
-    #class_weight_dict = {i: w for i, w in enumerate(class_weights)}
-    #print(class_weight_dict)
 
     param_grid = {
         'n_estimators': [750, 1000, 1500, 2000],
@@ -113,14 +108,31 @@ def random_forest_processing(x_file, y_file):
         print(f"{idx}: {feature_names[idx]}: {result.importances_mean[idx]}")
 
     results['permutation_importance'] = {idx: result.importances_mean[idx] for idx in sorted_idx}
-    output_dir = os.path.dirname(x_file)
-    output_dir = output_dir.replace("input", "output")
-    os.makedirs(output_dir, exist_ok=True)
-    print(f'Saving files to {output_dir}')
-    np.savetxt(os.path.join(output_dir, "y_pred.csv"), y_pred, delimiter=",")
-    np.savetxt(os.path.join(output_dir, "y_test.csv"), y_test, delimiter=",")
-    np.savetxt(os.path.join(output_dir, "X_test.csv"), X_test, delimiter=",", header=",".join(feature_names), comments='')
-    shutil.copy(x_file, os.path.join(output_dir, "x.csv"))
-    print(f"Execution Time: {time.time() - start_time:.2f} seconds\n")
 
-    return results, importances
+    #output_dir = os.path.dirname(x_file)
+    #output_dir = output_dir.replace("input", "output")
+    #os.makedirs(output_dir, exist_ok=True)
+    #print(f'Saving files to {output_dir}')
+    #np.savetxt(os.path.join(output_dir, "y_pred.csv"), y_pred, delimiter=",")
+    #np.savetxt(os.path.join(output_dir, "y_test.csv"), y_test, delimiter=",")
+    #np.savetxt(os.path.join(output_dir, "X_test.csv"), X_test, delimiter=",", header=",".join(feature_names), comments='')
+    #shutil.copy(x_file, os.path.join(output_dir, "x.csv"))
+    #print(f"Execution Time: {time.time() - start_time:.2f} seconds\n")
+
+    # Convert arrays to CSV strings
+    y_pred_csv = StringIO()
+    y_test_csv = StringIO()
+    X_test_csv = StringIO()
+
+    np.savetxt(y_pred_csv, y_pred, delimiter=",")
+    np.savetxt(y_test_csv, y_test, delimiter=",")
+    np.savetxt(X_test_csv, X_test, delimiter=",", header=",".join(feature_names), comments='')
+
+    # Reset StringIO cursor to the start
+    y_pred_csv.seek(0)
+    y_test_csv.seek(0)
+    X_test_csv.seek(0)
+
+    # Return CSV data as strings
+    print(f"Execution Time: {time.time() - start_time:.2f} seconds\n")
+    return y_pred_csv.getvalue(), y_test_csv.getvalue(), X_test_csv.getvalue(), results, importances
