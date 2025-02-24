@@ -83,9 +83,9 @@ def random_forest_processing(x_file, y_file):
         'classifier__n_estimators': [750, 1000, 1500],
         'classifier__max_depth': [5, 10, 20],
         'classifier__class_weight': [
-            {0: 1, 1: 2},  # Less aggressive weighting
+            #{0: 1, 1: 2},  # Less aggressive weighting
             #{0: 2, 1: 1},  # More conservative
-            #'balanced'
+            'balanced'
         ],
         'classifier__min_samples_split': [2, 5, 10, 15],
         'classifier__min_samples_leaf': [1, 5, 10],
