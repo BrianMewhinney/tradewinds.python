@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV, StratifiedKFold
-from sklearn.metrics import accuracy_score, confusion_matrix, make_scorer, f1_score, precision_score
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
+from sklearn.metrics import accuracy_score, confusion_matrix, make_scorer, f1_score, precision_score, balanced_accuracy_score
 from sklearn.inspection import permutation_importance
 import time
 from datetime import datetime
@@ -11,8 +11,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 import os
 import shutil
-from imblearn.over_sampling import SMOTE
 from io import StringIO
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.experimental import enable_halving_search_cv
+from sklearn.model_selection import HalvingRandomSearchCV
+from imblearn.pipeline import Pipeline
 
 def custom_scorer(y_true, y_pred):
     return f1_score(y_true, y_pred, average=None)[1]
@@ -33,33 +36,74 @@ def random_forest_processing(x_file, y_file):
 
     # Read CSV data from strings
     X_df = pd.read_csv(StringIO(x_file), header=0)
-    feature_names = X_df.columns
+
+    # After reading X_df but before splitting
+    X_df['fixtureId'] = np.arange(len(X_df))  # Create unique match identifiers
+    fixture_ids = X_df['fixtureId'].values
+    X_df = X_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
+
+    corr_matrix = X_df.corr().abs()
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+    high_corr = [column for column in upper.columns if any(upper[column] > 0.8)]
+    X_df = X_df.drop(columns=high_corr)
+
+    remaining_features = X_df.columns.tolist()  # This is critical
+    feature_names = np.array(remaining_features)  # Convert to array for index access
+    print(f"Remaining features ({len(remaining_features)}): {remaining_features}")
+    results['feature_names']=remaining_features
+
     X = X_df.values
     y = pd.read_csv(StringIO(y_file), header=None).values.flatten()
 
-    #X_df = pd.read_csv(x_file, header=0)
-    #feature_names = X_df.columns
-    #X = X_df.values
-    #y = pd.read_csv(y_file, header=None).values.flatten()
+    X_train, X_test, y_train, y_test, id_train, id_test = train_test_split(
+        X, y, fixture_ids,
+        test_size=0.1,
+        shuffle=False  # Critical for time-series order preservation
+    )
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, shuffle=False)
+
     print(f"Training set size: {len(X_train)}  Test set size: {len(X_test)}")
+    class_counts = np.bincount(y_train)
+    print(f"Class distribution - Train: {class_counts}")
+    print(f"Class distribution - Test: {np.bincount(y_test)}")
+
+    if 0 not in np.unique(y_train) or 0 not in np.unique(y_test):
+        raise ValueError("Class 0 (draw/tie) missing in train/test data")
+
+
+    tscv = TimeSeriesSplit(n_splits=5)
+    scorer = make_scorer(f1_score, average='binary', pos_label=1)
+
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),  # Optional but often helpful
+        ('classifier', RandomForestClassifier(random_state=42))
+    ])
 
     param_grid = {
-        'n_estimators': [750, 1000, 1500, 2000],
-        'max_depth': [5, 10, 20],
-        'min_samples_split': [2, 5, 10, 15],
-        'min_samples_leaf': [1, 5, 10],
-        'max_features': ['log2', 'sqrt'],
-        'class_weight': ['balanced']
-        #'class_weight': [class_weight_dict]
+        'classifier__n_estimators': [750, 1000, 1500],
+        'classifier__max_depth': [5, 10, 20],
+        'classifier__class_weight': [
+                'balanced',
+                {0: 10, 1: 1},  # Heavy emphasis on draws
+                {0: class_counts[1]/class_counts[0], 1: 1}  # Auto-ratio
+        ],
+        'classifier__min_samples_split': [2, 5, 10, 15],
+        'classifier__min_samples_leaf': [1, 5, 10],
+        'classifier__max_features': ['log2', 'sqrt'],
     }
-    #smote = SMOTE(random_state=42)
-    #X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    grid_search = HalvingRandomSearchCV(
+        pipeline,
+        param_distributions=param_grid,
+        cv=tscv,
+        n_jobs=-1,
+        scoring=scorer,
+        #n_iter=100,
+        aggressive_elimination=True,
+        random_state=42
+    )
 
-    stratified_kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
-    #grid_search = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=stratified_kfold, scoring='f1_macro', n_jobs=-1)
-    grid_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, n_iter=10, cv=stratified_kfold, n_jobs=-1, scoring='f1_macro', random_state=42)
+    #grid_search = HalvingRandomSearchCV(RandomForestClassifier(random_state=42), param_distributions=param_grid, cv=tscv, n_jobs=-1, scoring=scorer, n_iter=100, aggressive_elimination=True)
+    #grid_search = RandomizedSearchCV(n_iter=10, cv=tscv, n_jobs=-1, scoring='f1_macro', random_state=42)
     grid_search.fit(X_train, y_train)
 
     execution_time = time.time() - start_time
@@ -68,71 +112,85 @@ def random_forest_processing(x_file, y_file):
     results['best_params'] = grid_search.best_params_
     results['best_score'] = grid_search.best_score_
 
-#    print(f"Best Parameters: {grid_search.best_params_}")
     best_model = grid_search.best_estimator_
-    #best_model.fit(X_train_resampled, y_train_resampled)
+    #y_pred = best_model.predict(X_test)
 
-    y_pred = best_model.predict(X_test)  # Standardize X_test
+    probas = best_model.predict_proba(X_test)[:, 0]  # Class 0 probabilities
+    optimal_threshold = 0.3  # Start with this, adjust based on precision-recall
+    y_pred = (probas > optimal_threshold).astype(int)
 
     accuracy = accuracy_score(y_test, y_pred)
     results['test_accuracy'] = accuracy
 
-    # Calculate per-class accuracy
     cm = confusion_matrix(y_test, y_pred)
     per_class_accuracy = cm.diagonal() / cm.sum(axis=1)
     results['per_class_accuracy'] = per_class_accuracy
 
+    bal_acc = balanced_accuracy_score(y_test, y_pred)
+    results['balanced_accuracy'] = bal_acc
+    print(f"Balanced Accuracy: {bal_acc:.4f}")
+
     # Calculate overall precision (macro-average)
     precision = precision_score(y_test, y_pred, average='macro')  # Replace 'macro' with other options if needed
+    precision = precision_score(y_test, y_pred, average='macro', zero_division=0)
     results['test_precision'] = precision
+
     # Calculate per-class precision
-    per_class_precision = precision_score(y_test, y_pred, average=None)  # Precision for each class
+    per_class_precision = precision_score(y_test, y_pred, average=None, zero_division=0)
     results['per_class_precision'] = per_class_precision
 
     print(f"Overall Precision: {precision:.6f} Accuracy: {accuracy:.6f}   Best Score: {grid_search.best_score_:.6f}")
     print(f"Per-Class Precision: {per_class_precision}")
     print(f"Per-Class Accuracy: {per_class_accuracy}")
 
-    importances = best_model.feature_importances_
+    # Get feature importances
+    classifier = best_model.named_steps['classifier']
+    importances = classifier.feature_importances_
 
     indices = np.argsort(importances)[::-1]
-    results['feature_importance'] = {f"{f + 1}": (indices[f], importances[indices[f]]) for f in range(X_train.shape[1])}
-    #for idx in indices:
-    #    print(f"{idx}: {feature_names[idx]}: {importances[idx]}")
+    results['feature_importance'] = {
+        feature_names[idx]: float(importances[idx])  # Store name: importance
+        for idx in indices
+    }
 
-    result = permutation_importance(best_model, X_test, y_test, n_repeats=30, random_state=42, n_jobs=-1)
+    # Permutation importance
+    result = permutation_importance(
+        classifier,  # Use the extracted classifier
+        X_test,
+        y_test,
+        n_repeats=30,
+        random_state=42,
+        n_jobs=-1,
+        scoring=scorer
+    )
 
     sorted_idx = result.importances_mean.argsort()[::-1]
-    print('')
-    for idx in sorted_idx:
-        print(f"{idx}: {feature_names[idx]}: {result.importances_mean[idx]}")
+    results['permutation_importance'] = {
+        feature_names[idx]: float(result.importances_mean[idx])
+        for idx in sorted_idx
+    }
 
-    results['permutation_importance'] = {idx: result.importances_mean[idx] for idx in sorted_idx}
-
-    #output_dir = os.path.dirname(x_file)
-    #output_dir = output_dir.replace("input", "output")
-    #os.makedirs(output_dir, exist_ok=True)
-    #print(f'Saving files to {output_dir}')
-    #np.savetxt(os.path.join(output_dir, "y_pred.csv"), y_pred, delimiter=",")
-    #np.savetxt(os.path.join(output_dir, "y_test.csv"), y_test, delimiter=",")
-    #np.savetxt(os.path.join(output_dir, "X_test.csv"), X_test, delimiter=",", header=",".join(feature_names), comments='')
-    #shutil.copy(x_file, os.path.join(output_dir, "x.csv"))
-    #print(f"Execution Time: {time.time() - start_time:.2f} seconds\n")
+    results['fixture_mapping'] = {
+        'test_ids': id_test.tolist(),  # Array of match IDs in test set
+        'predicted_labels': y_pred.tolist(),
+        'true_labels': y_test.tolist()
+    }
 
     # Convert arrays to CSV strings
     y_pred_csv = StringIO()
     y_test_csv = StringIO()
     X_test_csv = StringIO()
 
-    np.savetxt(y_pred_csv, y_pred, delimiter=",")
-    np.savetxt(y_test_csv, y_test, delimiter=",")
-    np.savetxt(X_test_csv, X_test, delimiter=",", header=",".join(feature_names), comments='')
+    np.savetxt(y_pred_csv, y_pred, delimiter=",");
+    np.savetxt(y_test_csv, y_test, delimiter=",");
+    # Add match IDs as first column in X_test CSV
+    X_test_with_ids = np.column_stack([id_test, X_test])
+    np.savetxt(X_test_csv, X_test_with_ids, delimiter=",",
+               header="fixture_id," + ",".join(feature_names), comments='')
 
-    # Reset StringIO cursor to the start
     y_pred_csv.seek(0)
     y_test_csv.seek(0)
     X_test_csv.seek(0)
 
-    # Return CSV data as strings
     print(f"Execution Time: {time.time() - start_time:.2f} seconds\n")
     return y_pred_csv.getvalue(), y_test_csv.getvalue(), X_test_csv.getvalue(), results, importances
