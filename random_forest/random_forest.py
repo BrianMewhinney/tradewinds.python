@@ -84,8 +84,8 @@ def random_forest_processing(x_file, y_file):
         'classifier__max_depth': [5, 10, 20],
         'classifier__class_weight': [
             #{0: 1, 1: 2},  # Less aggressive weighting
-            #{0: 2, 1: 1},  # More conservative
-            'balanced'
+            {0: 3, 1: 1},  # More conservative
+            #'balanced'
         ],
         'classifier__min_samples_split': [2, 5, 10, 15],
         'classifier__min_samples_leaf': [1, 5, 10],
@@ -131,19 +131,20 @@ def random_forest_processing(x_file, y_file):
     }
 
     # Calculate metrics at optimal threshold
-    optimal_threshold = 0.3  # Start with this value
-    y_pred = (probas > optimal_threshold).astype(int)
+    #optimal_threshold = 0.4  # Start with this value
+    #y_pred = (probas > optimal_threshold).astype(int)
+    y_pred = y_pred_standard
 
     # Store threshold-adjusted metrics
-    results['adjusted_metrics'] = {
-        'threshold': optimal_threshold,
-        'accuracy': accuracy_score(y_test, y_pred),
-        'draw_precision': precision_score(y_test, y_pred, pos_label=0, zero_division=0),
-        'draw_recall': recall_score(y_test, y_pred, pos_label=0, zero_division=0),
-        'nondraw_precision': precision_score(y_test, y_pred, pos_label=1, zero_division=0),
-        'nondraw_recall': recall_score(y_test, y_pred, pos_label=1, zero_division=0),
-        'balanced_accuracy': balanced_accuracy_score(y_test, y_pred)
-    }
+    #results['adjusted_metrics'] = {
+    #    'threshold': optimal_threshold,
+    #    'accuracy': accuracy_score(y_test, y_pred),
+    #    'draw_precision': precision_score(y_test, y_pred, pos_label=0, zero_division=0),
+    #    'draw_recall': recall_score(y_test, y_pred, pos_label=0, zero_division=0),
+    #    'nondraw_precision': precision_score(y_test, y_pred, pos_label=1, zero_division=0),
+    #    'nondraw_recall': recall_score(y_test, y_pred, pos_label=1, zero_division=0),
+    #    'balanced_accuracy': balanced_accuracy_score(y_test, y_pred)
+    #}
 
     # Find optimal threshold using precision-recall curve
     precisions, recalls, thresholds = precision_recall_curve(y_test == 0, probas)
