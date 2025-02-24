@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import accuracy_score, confusion_matrix, make_scorer, f1_score, precision_score, balanced_accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix, make_scorer, f1_score, precision_score, balanced_accuracy_score, recall_score, precision_recall_curve
 from sklearn.inspection import permutation_importance
 import time
 from datetime import datetime
@@ -65,7 +65,8 @@ def random_forest_processing(x_file, y_file):
     class_counts = np.bincount(y_train)
     print(f"Class distribution - Train: {class_counts}")
     print(f"Class distribution - Test: {np.bincount(y_test)}")
-
+    draw_ratio = class_counts[0] / len(y_train)
+    print(f"Draw percentage: {draw_ratio:.2%}")
     if 0 not in np.unique(y_train) or 0 not in np.unique(y_test):
         raise ValueError("Class 0 (draw/tie) missing in train/test data")
 
@@ -81,10 +82,11 @@ def random_forest_processing(x_file, y_file):
     param_grid = {
         'classifier__n_estimators': [750, 1000, 1500],
         'classifier__max_depth': [5, 10, 20],
-        'classifier__class_weight': ['balanced'],
-    #                {0: 10, 1: 1},  # Heavy emphasis on draws
-    #                {0: class_counts[1]/class_counts[0], 1: 1}  # Auto-ratio
-    #        ],
+        'classifier__class_weight': [
+            {0: 3, 1: 1},  # Less aggressive weighting
+            #{0: 2, 1: 1},  # More conservative
+            #'balanced'
+        ],
         'classifier__min_samples_split': [2, 5, 10, 15],
         'classifier__min_samples_leaf': [1, 5, 10],
         'classifier__max_features': ['log2', 'sqrt'],
@@ -111,33 +113,58 @@ def random_forest_processing(x_file, y_file):
     results['best_score'] = grid_search.best_score_
 
     best_model = grid_search.best_estimator_
-    #y_pred = best_model.predict(X_test)
 
+    # Replace existing prediction code with:
     probas = best_model.predict_proba(X_test)[:, 0]  # Class 0 probabilities
-    optimal_threshold = 0.3  # Start with this, adjust based on precision-recall
+    # Store probabilities in results
+    results['class_probabilities'] = {
+        'draw_probas': probas[y_test == 0].tolist(),
+        'nondraw_probas': probas[y_test == 1].tolist()
+    }
+
+    # Calculate metrics at 0.5 threshold (standard predictions)
+    y_pred_standard = best_model.predict(X_test)
+    results['standard_metrics'] = {
+        'accuracy': accuracy_score(y_test, y_pred_standard),
+        'precision': precision_score(y_test, y_pred_standard, average='macro', zero_division=0),
+        'recall': recall_score(y_test, y_pred_standard, average='macro', zero_division=0)
+    }
+
+    # Calculate metrics at optimal threshold
+    optimal_threshold = 0.55  # Start with this value
     y_pred = (probas > optimal_threshold).astype(int)
 
-    accuracy = accuracy_score(y_test, y_pred)
-    results['test_accuracy'] = accuracy
+    # Store threshold-adjusted metrics
+    results['adjusted_metrics'] = {
+        'threshold': optimal_threshold,
+        'accuracy': accuracy_score(y_test, y_pred),
+        'draw_precision': precision_score(y_test, y_pred, pos_label=0, zero_division=0),
+        'draw_recall': recall_score(y_test, y_pred, pos_label=0, zero_division=0),
+        'nondraw_precision': precision_score(y_test, y_pred, pos_label=1, zero_division=0),
+        'nondraw_recall': recall_score(y_test, y_pred, pos_label=1, zero_division=0),
+        'balanced_accuracy': balanced_accuracy_score(y_test, y_pred)
+    }
 
+    # Find optimal threshold using precision-recall curve
+    precisions, recalls, thresholds = precision_recall_curve(y_test == 0, probas)
+    f1_scores = (2 * precisions * recalls) / (precisions + recalls + 1e-8)
+    optimal_idx = np.argmax(f1_scores)
+    results['optimal_threshold'] = {
+        'value': thresholds[optimal_idx],
+        'precision': precisions[optimal_idx],
+        'recall': recalls[optimal_idx],
+        'f1': f1_scores[optimal_idx]
+    }
+
+    print(f"Optimal Threshold: {thresholds[optimal_idx]:.3f}")
+    print(f"At this threshold - Precision: {precisions[optimal_idx]:.2%}, Recall: {recalls[optimal_idx]:.2%}")
     cm = confusion_matrix(y_test, y_pred)
     per_class_accuracy = cm.diagonal() / cm.sum(axis=1)
     results['per_class_accuracy'] = per_class_accuracy
 
-    bal_acc = balanced_accuracy_score(y_test, y_pred)
-    results['balanced_accuracy'] = bal_acc
-    print(f"Balanced Accuracy: {bal_acc:.4f}")
-
-    # Calculate overall precision (macro-average)
-    precision = precision_score(y_test, y_pred, average='macro')  # Replace 'macro' with other options if needed
-    precision = precision_score(y_test, y_pred, average='macro', zero_division=0)
-    results['test_precision'] = precision
-
     # Calculate per-class precision
     per_class_precision = precision_score(y_test, y_pred, average=None, zero_division=0)
     results['per_class_precision'] = per_class_precision
-
-    print(f"Overall Precision: {precision:.6f} Accuracy: {accuracy:.6f}   Best Score: {grid_search.best_score_:.6f}")
     print(f"Per-Class Precision: {per_class_precision}")
     print(f"Per-Class Accuracy: {per_class_accuracy}")
 
