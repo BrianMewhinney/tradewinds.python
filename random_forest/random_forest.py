@@ -17,17 +17,11 @@ from sklearn.experimental import enable_halving_search_cv
 from sklearn.model_selection import HalvingRandomSearchCV
 from imblearn.pipeline import Pipeline
 
-def custom_scorer(y_true, y_pred):
-    return f1_score(y_true, y_pred, average=None)[1]
-
-class EmphasizeFeatures:
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        X = X.copy()
-        X[:, 1] *= 2  # Emphasize feature 2
-        return X
+def safe_draw_scorer(y_true, y_pred):
+    """Handles cases where class 0 is missing"""
+    if 0 not in y_true:
+        return 0.0  # No draws to evaluate
+    return f1_score(y_true, y_pred, pos_label=0, zero_division=0)
 
 def random_forest_processing(x_file, y_file):
     start_time = time.time()
@@ -72,7 +66,7 @@ def random_forest_processing(x_file, y_file):
 
 
     tscv = TimeSeriesSplit(n_splits=5)
-    scorer = make_scorer(f1_score, average='binary', pos_label=1)
+    draw_scorer = make_scorer(safe_draw_scorer)
 
     pipeline = Pipeline([
         ('scaler', StandardScaler()),  # Optional but often helpful
@@ -83,14 +77,15 @@ def random_forest_processing(x_file, y_file):
         'classifier__n_estimators': [750, 1000, 1500],
         'classifier__max_depth': [5, 10, 20],
         'classifier__class_weight': [
-            #{0: 1, 1: 2},  # Less aggressive weighting
-            #{0: 1.5, 1: 1},  # More conservative
+            {0: 10, 1: 1},  # Heavy draw emphasis
+            {0: 8, 1: 1},
             'balanced'
         ],
         'classifier__min_samples_split': [2, 5, 10, 15],
         'classifier__min_samples_leaf': [1, 5, 10],
         'classifier__max_features': ['log2', 'sqrt'],
     }
+    scorer = draw_scorer
     grid_search = HalvingRandomSearchCV(
         pipeline,
         param_distributions=param_grid,
@@ -129,11 +124,32 @@ def random_forest_processing(x_file, y_file):
         'precision': precision_score(y_test, y_pred_standard, average='macro', zero_division=0),
         'recall': recall_score(y_test, y_pred_standard, average='macro', zero_division=0)
     }
+    y_pred = y_pred_standard
+
+    # Check if class 0 exists in test set
+    unique_classes = np.unique(y_test)
+    if 0 not in unique_classes:
+        print("Warning: No draw instances in test set - metrics invalid")
+        results['draw_metrics'] = {
+            'precision': 0.0,
+            'recall': 0.0,
+            'f1': 0.0
+        }
+    else:
+        # Calculate metrics normally
+        results['draw_metrics'] = {
+            'precision': precision_score(y_test, y_pred, pos_label=0, zero_division=0),
+            'recall': recall_score(y_test, y_pred, pos_label=0, zero_division=0),
+            'f1': f1_score(y_test, y_pred, pos_label=0, zero_division=0)
+        }
+
+    print(f"Draw F1: {results['draw_metrics']['f1']:.2%}")
+    print(f"Draw Precision: {results['draw_metrics']['precision']:.2%}")
+    print(f"Draw Recall: {results['draw_metrics']['recall']:.2%}")
 
     # Calculate metrics at optimal threshold
     #optimal_threshold = 0.4  # Start with this value
     #y_pred = (probas > optimal_threshold).astype(int)
-    y_pred = y_pred_standard
 
     # Store threshold-adjusted metrics
     #results['adjusted_metrics'] = {
