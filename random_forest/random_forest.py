@@ -83,7 +83,7 @@ def random_forest_processing(x_file, y_file):
         'classifier__n_estimators': [750, 1000, 1500],
         'classifier__max_depth': [5, 10, 20],
         'classifier__class_weight': [
-            {0: 3, 1: 1},  # Less aggressive weighting
+            {0: 2, 1: 1},  # Less aggressive weighting
             #{0: 2, 1: 1},  # More conservative
             #'balanced'
         ],
@@ -131,7 +131,7 @@ def random_forest_processing(x_file, y_file):
     }
 
     # Calculate metrics at optimal threshold
-    optimal_threshold = 0.55  # Start with this value
+    optimal_threshold = 0.4  # Start with this value
     y_pred = (probas > optimal_threshold).astype(int)
 
     # Store threshold-adjusted metrics
