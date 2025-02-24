@@ -81,11 +81,10 @@ def random_forest_processing(x_file, y_file):
     param_grid = {
         'classifier__n_estimators': [750, 1000, 1500],
         'classifier__max_depth': [5, 10, 20],
-        'classifier__class_weight': [
-                'balanced',
-                {0: 10, 1: 1},  # Heavy emphasis on draws
-                {0: class_counts[1]/class_counts[0], 1: 1}  # Auto-ratio
-        ],
+        'classifier__class_weight': ['balanced'],
+    #                {0: 10, 1: 1},  # Heavy emphasis on draws
+    #                {0: class_counts[1]/class_counts[0], 1: 1}  # Auto-ratio
+    #        ],
         'classifier__min_samples_split': [2, 5, 10, 15],
         'classifier__min_samples_leaf': [1, 5, 10],
         'classifier__max_features': ['log2', 'sqrt'],
@@ -151,6 +150,7 @@ def random_forest_processing(x_file, y_file):
         feature_names[idx]: float(importances[idx])  # Store name: importance
         for idx in indices
     }
+    print(results['feature_importance'])
 
     # Permutation importance
     result = permutation_importance(
@@ -168,6 +168,7 @@ def random_forest_processing(x_file, y_file):
         feature_names[idx]: float(result.importances_mean[idx])
         for idx in sorted_idx
     }
+    print(results['permutation_importance'])
 
     results['fixture_mapping'] = {
         'test_ids': id_test.tolist(),  # Array of match IDs in test set
