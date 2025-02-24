@@ -38,8 +38,8 @@ def random_forest_processing(x_file, y_file):
     X_df = pd.read_csv(StringIO(x_file), header=0)
 
     # After reading X_df but before splitting
-    X_df['fixtureId'] = np.arange(len(X_df))  # Create unique match identifiers
     fixture_ids = X_df['fixtureId'].values
+
     X_df = X_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
 
     corr_matrix = X_df.corr().abs()
@@ -49,7 +49,7 @@ def random_forest_processing(x_file, y_file):
 
     remaining_features = X_df.columns.tolist()  # This is critical
     feature_names = np.array(remaining_features)  # Convert to array for index access
-    print(f"Remaining features ({len(remaining_features)}): {remaining_features}")
+    print(f"Dropped features ({len(high_corr)}): {high_corr}")
     results['feature_names']=remaining_features
 
     X = X_df.values
@@ -60,7 +60,6 @@ def random_forest_processing(x_file, y_file):
         test_size=0.1,
         shuffle=False  # Critical for time-series order preservation
     )
-
 
     print(f"Training set size: {len(X_train)}  Test set size: {len(X_test)}")
     class_counts = np.bincount(y_train)
