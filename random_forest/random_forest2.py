@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, RobustScaler
 import os
 import shutil
 from io import StringIO
@@ -16,6 +16,9 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.experimental import enable_halving_search_cv
 from sklearn.model_selection import HalvingRandomSearchCV
 from imblearn.pipeline import Pipeline
+import gc
+
+#np.seterr(all='raise')
 
 def safe_draw_scorer(y_true, y_pred):
     """Handles cases where class 0 is missing"""
@@ -26,28 +29,33 @@ def safe_draw_scorer(y_true, y_pred):
 def random_forest_processing(x_file, y_file):
     start_time = time.time()
     results = {}
+    gc.collect()
+
     print(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Read CSV data from strings
     X_df = pd.read_csv(StringIO(x_file), header=0)
-
     # After reading X_df but before splitting
     fixture_ids = X_df['fixtureId'].values
 
     X_df = X_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
 
-    corr_matrix = X_df.corr().abs()
-    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
-    high_corr = [column for column in upper.columns if any(upper[column] > 0.8)]
-    X_df = X_df.drop(columns=high_corr)
-
-    remaining_features = X_df.columns.tolist()  # This is critical
-    feature_names = np.array(remaining_features)  # Convert to array for index access
-    print(f"Dropped features ({len(high_corr)}): {high_corr}")
-    results['feature_names']=remaining_features
-
+    feature_names = np.array(X_df.columns.tolist())  # Convert to array for index access
+    print(f"Feature Names:({feature_names})")
+    results['feature_names']=feature_names
     X = X_df.values
     y = pd.read_csv(StringIO(y_file), header=None).values.flatten()
+
+    print("NaN in features:", np.isnan(X).sum())
+    print("Infinity in features:", np.isinf(X).sum())
+
+    X = X_df.values.astype(np.float64)  # Force explicit type
+    X = np.nan_to_num(X, copy=False)  # Handle potential NaN/Inf that might have been missed
+
+    constant_mask = X_df.std(axis=0) == 0
+    if np.any(constant_mask):
+        print(f"Constant features found: {X_df.columns[constant_mask].tolist()}")
+        X_df = X_df.loc[:, ~constant_mask]  # Remove constant features
 
     X_train, X_test, y_train, y_test, id_train, id_test = train_test_split(
         X, y, fixture_ids,
@@ -56,6 +64,7 @@ def random_forest_processing(x_file, y_file):
     )
 
     print(f"Training set size: {len(X_train)}  Test set size: {len(X_test)}")
+
     class_counts = np.bincount(y_train)
     print(f"Class distribution - Train: {class_counts}")
     print(f"Class distribution - Test: {np.bincount(y_test)}")
@@ -64,12 +73,11 @@ def random_forest_processing(x_file, y_file):
     if 0 not in np.unique(y_train) or 0 not in np.unique(y_test):
         raise ValueError("Class 0 (draw/tie) missing in train/test data")
 
-
     tscv = TimeSeriesSplit(n_splits=5)
     draw_scorer = make_scorer(safe_draw_scorer)
 
     pipeline = Pipeline([
-        ('scaler', StandardScaler()),  # Optional but often helpful
+        ('scaler', RobustScaler()),  # Optional but often helpful
         ('classifier', RandomForestClassifier(random_state=42))
     ])
 
@@ -161,19 +169,6 @@ def random_forest_processing(x_file, y_file):
     #    'balanced_accuracy': balanced_accuracy_score(y_test, y_pred)
     #}
 
-    # Find optimal threshold using precision-recall curve
-    precisions, recalls, thresholds = precision_recall_curve(y_test == 0, probas)
-    f1_scores = (2 * precisions * recalls) / (precisions + recalls + 1e-8)
-    optimal_idx = np.argmax(f1_scores)
-    results['optimal_threshold'] = {
-        'value': thresholds[optimal_idx],
-        'precision': precisions[optimal_idx],
-        'recall': recalls[optimal_idx],
-        'f1': f1_scores[optimal_idx]
-    }
-
-    print(f"Optimal Threshold: {thresholds[optimal_idx]:.3f}")
-    print(f"At this threshold - Precision: {precisions[optimal_idx]:.2%}, Recall: {recalls[optimal_idx]:.2%}")
     cm = confusion_matrix(y_test, y_pred)
     per_class_accuracy = cm.diagonal() / cm.sum(axis=1)
     results['per_class_accuracy'] = per_class_accuracy
@@ -224,8 +219,8 @@ def random_forest_processing(x_file, y_file):
     y_test_csv = StringIO()
     X_test_csv = StringIO()
 
-    np.savetxt(y_pred_csv, y_pred, delimiter=",");
-    np.savetxt(y_test_csv, y_test, delimiter=",");
+    np.savetxt(y_pred_csv, y_pred, delimiter=",")
+    np.savetxt(y_test_csv, y_test, delimiter=",")
     # Add match IDs as first column in X_test CSV
     X_test_with_ids = np.column_stack([id_test, X_test])
     np.savetxt(X_test_csv, X_test_with_ids, delimiter=",",

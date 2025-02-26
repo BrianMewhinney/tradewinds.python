@@ -1,6 +1,6 @@
 import pika
 import json
-from random_forest.random_forest import random_forest_processing
+from random_forest.random_forest2 import random_forest_processing
 import pandas as pd
 import numpy as np
 
@@ -56,7 +56,7 @@ def callback(ch, method, properties, body):
     y_pred, y_test, x_test, npResults, importances = random_forest_processing(data['x'], data['y'])
     print("Message processing complete")
     results = make_serializable(npResults)
-    send_to_result_queue((results, config, y_pred, y_test, x_test, data['f']))
+    send_to_result_queue((results, config, y_pred, y_test, x_test))
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
