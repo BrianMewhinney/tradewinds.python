@@ -86,8 +86,8 @@ def random_forest_processing(x_file, y_file):
         'classifier__max_depth': [5, 10, 20],
         'classifier__class_weight': [
             {0: 5, 1: 1},  # Heavy draw emphasis
-            {0: 2, 1: 1},
-            'balanced'
+            #{0: 2, 1: 1},
+            #'balanced'
         ],
         'classifier__min_samples_split': [2, 5, 10, 15],
         'classifier__min_samples_leaf': [1, 5, 10],
