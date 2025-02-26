@@ -37,7 +37,6 @@ def random_forest_processing(x_file, y_file):
     X_df = pd.read_csv(StringIO(x_file), header=0)
     # After reading X_df but before splitting
     fixture_ids = X_df['fixtureId'].values
-
     X_df = X_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
 
     feature_names = np.array(X_df.columns.tolist())  # Convert to array for index access
@@ -45,17 +44,6 @@ def random_forest_processing(x_file, y_file):
     results['feature_names']=feature_names
     X = X_df.values
     y = pd.read_csv(StringIO(y_file), header=None).values.flatten()
-
-    print("NaN in features:", np.isnan(X).sum())
-    print("Infinity in features:", np.isinf(X).sum())
-
-    X = X_df.values.astype(np.float64)  # Force explicit type
-    X = np.nan_to_num(X, copy=False)  # Handle potential NaN/Inf that might have been missed
-
-    constant_mask = X_df.std(axis=0) == 0
-    if np.any(constant_mask):
-        print(f"Constant features found: {X_df.columns[constant_mask].tolist()}")
-        X_df = X_df.loc[:, ~constant_mask]  # Remove constant features
 
     X_train, X_test, y_train, y_test, id_train, id_test = train_test_split(
         X, y, fixture_ids,
@@ -76,8 +64,7 @@ def random_forest_processing(x_file, y_file):
     tscv = TimeSeriesSplit(n_splits=5)
     draw_scorer = make_scorer(safe_draw_scorer)
 
-    pipeline = Pipeline([
-        ('scaler', RobustScaler()),  # Optional but often helpful
+    pipeline = Pipeline([# Optional but often helpful
         ('classifier', RandomForestClassifier(random_state=42))
     ])
 
@@ -116,58 +103,19 @@ def random_forest_processing(x_file, y_file):
 
     best_model = grid_search.best_estimator_
 
-    # Replace existing prediction code with:
-    probas = best_model.predict_proba(X_test)[:, 0]  # Class 0 probabilities
-    # Store probabilities in results
-    results['class_probabilities'] = {
-        'draw_probas': probas[y_test == 0].tolist(),
-        'nondraw_probas': probas[y_test == 1].tolist()
-    }
-
     # Calculate metrics at 0.5 threshold (standard predictions)
-    y_pred_standard = best_model.predict(X_test)
-    results['standard_metrics'] = {
-        'accuracy': accuracy_score(y_test, y_pred_standard),
-        'precision': precision_score(y_test, y_pred_standard, average='macro', zero_division=0),
-        'recall': recall_score(y_test, y_pred_standard, average='macro', zero_division=0)
-    }
-    y_pred = y_pred_standard
+    y_pred = best_model.predict(X_test)
 
-    # Check if class 0 exists in test set
-    unique_classes = np.unique(y_test)
-    if 0 not in unique_classes:
-        print("Warning: No draw instances in test set - metrics invalid")
-        results['draw_metrics'] = {
-            'precision': 0.0,
-            'recall': 0.0,
-            'f1': 0.0
-        }
-    else:
-        # Calculate metrics normally
-        results['draw_metrics'] = {
-            'precision': precision_score(y_test, y_pred, pos_label=0, zero_division=0),
-            'recall': recall_score(y_test, y_pred, pos_label=0, zero_division=0),
-            'f1': f1_score(y_test, y_pred, pos_label=0, zero_division=0)
-        }
+    # Calculate metrics normally
+    results['draw_metrics'] = {
+        'precision': precision_score(y_test, y_pred, pos_label=0, zero_division=0),
+        'recall': recall_score(y_test, y_pred, pos_label=0, zero_division=0),
+        'f1': f1_score(y_test, y_pred, pos_label=0, zero_division=0)
+    }
 
     print(f"Draw F1: {results['draw_metrics']['f1']:.2%}")
     print(f"Draw Precision: {results['draw_metrics']['precision']:.2%}")
     print(f"Draw Recall: {results['draw_metrics']['recall']:.2%}")
-
-    # Calculate metrics at optimal threshold
-    #optimal_threshold = 0.4  # Start with this value
-    #y_pred = (probas > optimal_threshold).astype(int)
-
-    # Store threshold-adjusted metrics
-    #results['adjusted_metrics'] = {
-    #    'threshold': optimal_threshold,
-    #    'accuracy': accuracy_score(y_test, y_pred),
-    #    'draw_precision': precision_score(y_test, y_pred, pos_label=0, zero_division=0),
-    #    'draw_recall': recall_score(y_test, y_pred, pos_label=0, zero_division=0),
-    #    'nondraw_precision': precision_score(y_test, y_pred, pos_label=1, zero_division=0),
-    #    'nondraw_recall': recall_score(y_test, y_pred, pos_label=1, zero_division=0),
-    #    'balanced_accuracy': balanced_accuracy_score(y_test, y_pred)
-    #}
 
     cm = confusion_matrix(y_test, y_pred)
     per_class_accuracy = cm.diagonal() / cm.sum(axis=1)
