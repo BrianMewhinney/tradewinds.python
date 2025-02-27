@@ -52,7 +52,7 @@ def light_gbm_predictor(X_csv, y_csv):
         'metric': ['binary_logloss', 'auc'],
         'boosting_type': 'gbdt',
         'num_leaves': 50,
-        'learning_rate': 0.01,
+        'learning_rate': 0.1,
         'feature_fraction': 0.9,
         'bagging_fraction': 0.8,
         'bagging_freq': 5,
