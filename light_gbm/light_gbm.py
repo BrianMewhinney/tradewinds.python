@@ -38,6 +38,16 @@ def light_gbm_predictor(X_csv, y_csv):
     X = X.astype(np.float32)
     y = y.astype(int)
 
+    # Determine the split index
+    split_index = int(len(X) - (len(X) *.1))
+    print(f"Split Index {split_index} of {len(X)}")
+
+    # Split data into train and validation sets
+    X_train, X_val = X[:split_index], X[split_index:]
+    y_train, y_val = y[:split_index], y[split_index:]
+    id_train, id_val = fixture_ids[:split_index], fixture_ids[split_index:]
+
+    '''
     # Split initial data
     X_train, X_val, y_train, y_val, id_train, id_val = train_test_split(
         X, y, fixture_ids,
@@ -45,7 +55,7 @@ def light_gbm_predictor(X_csv, y_csv):
         stratify=y,
         random_state=42
     )
-
+    '''
     # LightGBM parameters
     params = {
         'objective': 'binary',
@@ -119,18 +129,5 @@ def light_gbm_predictor(X_csv, y_csv):
         lgb.Dataset(X_train, label=y_train),
         callbacks=[lgb.log_evaluation(period=100)]
     )
-
-    # Evaluate on hold-out validation set
-    #val_preds = final_model.predict(X_val)
-    #val_metrics = {
-    #    'roc_auc': roc_auc_score(y_val, val_preds),
-    #    'classification_report': classification_report(
-    #        y_val,
-    #        (val_preds > 0.5).astype(int),
-    #        target_names=['No Draw', 'Draw']
-    #    )
-    #}
-    #print(f"Precision (Draw): {np.mean(all_precisions):.3f} ± {np.std(all_precisions):.3f}")
-    #print(f"Recall (Draw): {np.mean(all_recalls):.3f} ± {np.std(all_recalls):.3f}")
 
     return final_model, feature_importances, X_val, y_val, id_val
