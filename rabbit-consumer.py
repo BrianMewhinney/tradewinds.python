@@ -66,7 +66,7 @@ def callback(ch, method, properties, body):
     y_pred = make_serializable(y_pred_np)
     y_val = make_serializable(y_val_np)
     id_val = make_serializable(id_val_np)
-    send_to_result_queue((metrics, config, y_pred, y_val, id_val))
+    send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances))
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
