@@ -54,18 +54,19 @@ def callback(ch, method, properties, body):
     config = data['config']
     print(f"Received execution request for simulation: {config['simulationId']}  execution: {config['executionId']}  league {config['leagueId']}")
     #y_pred, y_test, x_test, npResults, importances = random_forest_processing(data['x'], data['y'])
-    trained_model, feature_importances, x_val, y_val_np, id_val_np = light_gbm_predictor(data['x'], data['y'])
+    trained_model, feature_importances_np, x_val, y_val_np, id_val_np = light_gbm_predictor(data['x'], data['y'])
     test_metrics, y_pred_np = evaluate_model(trained_model, x_val, y_val_np)
 
 
     print("Message processing complete")
-    print(feature_importances)
+    print(feature_importances_np)
     print(test_metrics["classification_report"])
 
     metrics = make_serializable(test_metrics)
     y_pred = make_serializable(y_pred_np)
     y_val = make_serializable(y_val_np)
     id_val = make_serializable(id_val_np)
+    feature_importances = make_serializable(feature_importances_np)
     send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances))
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
