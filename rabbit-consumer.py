@@ -56,7 +56,7 @@ def callback(ch, method, properties, body):
     config = data['config']
     print(f"Received execution request for simulation: {config['simulationId']}  execution: {config['executionId']}  league {config['leagueId']}")
     #y_pred, y_test, x_test, npResults, importances = random_forest_processing(data['x'], data['y'])
-    trained_model, feature_importances_np, x_val, y_val_np, id_val_np, shap_values = light_gbm_predictor(data['x'], data['y'])
+    trained_model, feature_importances_np, x_val, y_val_np, id_val_np, shap_values, shap_expected_value, shap_summary_df = light_gbm_predictor(data['x'], data['y'])
     test_metrics, y_pred_np = evaluate_model(trained_model, x_val, y_val_np)
 
     print("Message processing complete")
@@ -68,6 +68,7 @@ def callback(ch, method, properties, body):
     y_val = make_serializable(y_val_np)
     id_val = make_serializable(id_val_np)
     feature_importances = make_serializable(feature_importances_np)
+    shap_summary = make_serializable(shap_summary_df)
     #shap_values = make_serializable(shap_values_np)
 
     if ('predX' in data):
@@ -76,7 +77,7 @@ def callback(ch, method, properties, body):
         pred_id = make_serializable(pred_id_np)
         send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values, predY_pred, pred_id))
     else:
-        send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values))
+        send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values, shap_expected_value, shap_summary))
 
 
 

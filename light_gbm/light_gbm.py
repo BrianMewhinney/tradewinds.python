@@ -116,6 +116,19 @@ def light_gbm_predictor(X_csv, y_csv):
     # Compute SHAP values
     explainer = shap.TreeExplainer(final_model, data=X_train)
     shap_values_raw = explainer(X_val, check_additivity=False)
+    shap_expected_value = explainer.expected_value
+    print(f'Shap Expected Value: {shap_expected_value}')
     shap_values = shap_values_raw.values.tolist()
 
-    return final_model, feature_importances, X_val, y_val, id_val, shap_values
+    shap_values_array = np.array(shap_values)
+
+    # Calculate mean absolute SHAP values across all validation samples
+    mean_abs_shap = np.abs(shap_values_array).mean(axis=0)
+
+    # Create sorted DataFrame
+    shap_summary_df = pd.DataFrame({
+        'feature': X_val.columns,
+        'mean_abs_shap': mean_abs_shap
+    }).sort_values('mean_abs_shap', ascending=False)
+
+    return final_model, feature_importances, X_val, y_val, id_val, shap_values, shap_expected_value, shap_summary_df
