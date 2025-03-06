@@ -4,21 +4,12 @@ from io import StringIO
 import lightgbm as lgb
 from sklearn.metrics import roc_auc_score, classification_report, precision_score, recall_score
 from sklearn.model_selection import train_test_split, StratifiedKFold
+import shap
 import time
 from datetime import datetime
 
 
 def light_gbm_predictor(X_csv, y_csv):
-    """
-    Trains a LightGBM model for draw prediction with cross-validation
-
-    Args:
-        X_csv (str): CSV string of features (already scaled)
-        y_csv (str): CSV string of target (1=draw, 0=not draw)
-
-    Returns:
-        tuple: (trained_model, feature_importances, validation_metrics)
-    """
     start_time = time.time()
     results = {}
     print(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -48,15 +39,6 @@ def light_gbm_predictor(X_csv, y_csv):
     y_train, y_val = y[:split_index], y[split_index:]
     id_train, id_val = fixture_ids[:split_index], fixture_ids[split_index:]
 
-    '''
-    # Split initial data
-    X_train, X_val, y_train, y_val, id_train, id_val = train_test_split(
-        X, y, fixture_ids,
-        test_size=.1,
-        stratify=y,
-        random_state=42
-    )
-    '''
     # LightGBM parameters
     params = {
         'objective': 'binary',
@@ -131,4 +113,9 @@ def light_gbm_predictor(X_csv, y_csv):
         callbacks=[lgb.log_evaluation(period=100)]
     )
 
-    return final_model, feature_importances, X_val, y_val, id_val
+    # Compute SHAP values
+    explainer = shap.Explainer(final_model, X_train)
+    shap_values_raw = explainer(X_val)
+    shap_values = shap_values_raw.values.tolist()
+
+    return final_model, feature_importances, X_val, y_val, id_val, shap_values

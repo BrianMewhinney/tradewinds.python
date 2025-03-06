@@ -5,6 +5,7 @@ from light_gbm.light_gbm import light_gbm_predictor
 import pandas as pd
 import numpy as np
 from evaluate_model import evaluate_model
+from model_prediction import model_prediction
 
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(
@@ -50,24 +51,37 @@ def send_to_result_queue(data):
 
 
 def callback(ch, method, properties, body):
+    #'''
     data = json.loads(body)
     config = data['config']
     print(f"Received execution request for simulation: {config['simulationId']}  execution: {config['executionId']}  league {config['leagueId']}")
     #y_pred, y_test, x_test, npResults, importances = random_forest_processing(data['x'], data['y'])
-    trained_model, feature_importances_np, x_val, y_val_np, id_val_np = light_gbm_predictor(data['x'], data['y'])
+    trained_model, feature_importances_np, x_val, y_val_np, id_val_np, shap_values = light_gbm_predictor(data['x'], data['y'])
     test_metrics, y_pred_np = evaluate_model(trained_model, x_val, y_val_np)
-
 
     print("Message processing complete")
     print(feature_importances_np)
-    print(test_metrics["classification_report"])
+    #print(test_metrics["classification_report"])
 
     metrics = make_serializable(test_metrics)
     y_pred = make_serializable(y_pred_np)
     y_val = make_serializable(y_val_np)
     id_val = make_serializable(id_val_np)
     feature_importances = make_serializable(feature_importances_np)
-    send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances))
+    #shap_values = make_serializable(shap_values_np)
+
+    if ('predX' in data):
+        predY_pred_np, pred_id_np = model_prediction(trained_model, data['predX'])
+        predY_pred = make_serializable(predY_pred_np)
+        pred_id = make_serializable(pred_id_np)
+        send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values, predY_pred, pred_id))
+    else:
+        send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values))
+
+
+
+    #'''
+
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
