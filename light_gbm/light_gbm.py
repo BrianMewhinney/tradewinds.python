@@ -114,8 +114,8 @@ def light_gbm_predictor(X_csv, y_csv):
     )
 
     # Compute SHAP values
-    explainer = shap.Explainer(final_model, X_train, check_additivity=False)
-    shap_values_raw = explainer(X_val)
+    explainer = shap.TreeExplainer(final_model, data=X_train)
+    shap_values_raw = explainer(X_val, check_additivity=False)
     shap_values = shap_values_raw.values.tolist()
 
     return final_model, feature_importances, X_val, y_val, id_val, shap_values
