@@ -75,7 +75,7 @@ def callback(ch, method, properties, body):
         predY_pred_np, pred_id_np = model_prediction(trained_model, data['predX'])
         predY_pred = make_serializable(predY_pred_np)
         pred_id = make_serializable(pred_id_np)
-        send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values, predY_pred, pred_id))
+        send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values, shap_expected_value, shap_summary, predY_pred, pred_id))
     else:
         send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values, shap_expected_value, shap_summary))
 
