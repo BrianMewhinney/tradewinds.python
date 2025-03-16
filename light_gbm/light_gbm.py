@@ -30,8 +30,8 @@ def light_gbm_predictor(X_csv, y_csv):
     y = y.astype(int)
 
     # Determine the split index
-    #split_index = int(len(X) - (len(X) *.1))
-    split_index = len(X) - 100
+    split_index = int(len(X) - (len(X) *.15))
+    #split_index = len(X) - 100
     print(f"Split Index {split_index} of {len(X)}")
 
     # Split data into train and validation sets
