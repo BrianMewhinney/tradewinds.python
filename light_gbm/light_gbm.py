@@ -85,7 +85,7 @@ def light_gbm_predictor(X_csv, y_csv):
             valid_sets=[valid_data],
             callbacks=[
                 lgb.early_stopping(stopping_rounds=50, verbose=False),
-                lgb.log_evaluation(period=100)
+                lgb.log_evaluation(period=200)
             ]
         )
 
@@ -130,5 +130,19 @@ def light_gbm_predictor(X_csv, y_csv):
         'feature': X_val.columns,
         'mean_abs_shap': mean_abs_shap
     }).sort_values('mean_abs_shap', ascending=False)
+
+    # Get the tree information
+    #tree_info = final_model.trees_to_dataframe()
+
+    # Print the first few rows of the tree_info DataFrame
+    #print(tree_info.head())
+
+    # Get individual trees
+    #num_trees = final_model.num_trees()
+    #for tree_index in range(num_trees):
+    #    tree = tree_info[tree_info['tree_index'] == tree_index]
+    #    print(f"Tree {tree_index + 1}:")
+    #    print(tree)
+    #    print("\n")
 
     return final_model, feature_importances, X_val, y_val, id_val, shap_values, shap_expected_value, shap_summary_df
