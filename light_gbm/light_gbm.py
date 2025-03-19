@@ -82,10 +82,11 @@ def light_gbm_predictor(X_csv, y_csv):
         model = lgb.train(
             params,
             train_data,
+            num_boost_round=500,
             valid_sets=[valid_data],
             callbacks=[
                 lgb.early_stopping(stopping_rounds=50, verbose=False),
-                lgb.log_evaluation(period=200)
+                lgb.log_evaluation(period=100)
             ]
         )
 
