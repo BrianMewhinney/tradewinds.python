@@ -2,13 +2,13 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 import lightgbm as lgb
-from lightgbm import LGBMClassifier
 from sklearn.metrics import roc_auc_score, classification_report, precision_score, recall_score
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.inspection import permutation_importance
 import shap
 import time
 from datetime import datetime
+
 
 def light_gbm_predictor(X_csv, y_csv):
     start_time = time.time()
@@ -21,7 +21,7 @@ def light_gbm_predictor(X_csv, y_csv):
     X_df = X_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
 
     feature_names = np.array(X_df.columns.tolist())  # Convert to array for index access
-    results['feature_names'] = feature_names
+    results['feature_names']=feature_names
 
     X = X_df
     y = pd.read_csv(StringIO(y_csv), header=None).values.flatten()
@@ -31,7 +31,8 @@ def light_gbm_predictor(X_csv, y_csv):
     y = y.astype(int)
 
     # Determine the split index
-    split_index = int(len(X) - (len(X) * 0.15))
+    split_index = int(len(X) - (len(X) *.15))
+    #split_index = len(X) - 100
     print(f"Split Index {split_index} of {len(X)}")
 
     # Split data into train and validation sets
@@ -68,16 +69,22 @@ def light_gbm_predictor(X_csv, y_csv):
         # Data partitioning (using your existing indices)
         X_fold_train = X_train.iloc[train_idx]  # DataFrame
         y_fold_train = y_train[train_idx]       # Array
-        X_fold_valid = X_train.iloc[valid_idx]  # DataFrame
-        y_fold_valid = y_train[valid_idx]       # Array
+        X_fold_valid = X_train.iloc[valid_idx]   # DataFrame
+        y_fold_valid = y_train[valid_idx]       # Array <- This is your validation y
 
         # Train model on X_fold_train/y_fold_train
-        model = LGBMClassifier(**params)
-        model.fit(
-            X_fold_train,
-            y_fold_train,
-            eval_set=[(X_fold_valid, y_fold_valid)],
-            eval_metric=['binary_logloss', 'auc'],
+        # ...
+
+        # Convert indices using .iloc on DataFrame
+        train_data = lgb.Dataset(X_fold_train, label=y_fold_train)
+        valid_data = lgb.Dataset(X_fold_valid, label=y_fold_valid)
+
+        # Model training
+        model = lgb.train(
+            params,
+            train_data,
+            num_boost_round=100,
+            valid_sets=[valid_data],
             callbacks=[
                 lgb.early_stopping(stopping_rounds=50, verbose=False),
                 lgb.log_evaluation(period=100)
@@ -86,24 +93,27 @@ def light_gbm_predictor(X_csv, y_csv):
 
         # Store feature importance
         feature_importances[f'fold_{fold+1}'] = pd.Series(
-            model.feature_importances_,
+            model.feature_importance(importance_type='gain'),
             index=X.columns
         )
 
         # Validation predictions
-        val_preds = model.predict_proba(X_train.iloc[valid_idx])[:, 1]
+        val_preds = model.predict(X_train.iloc[valid_idx])
         eval_results.append(roc_auc_score(y_train[valid_idx], val_preds))
 
         # Calculate metrics for THIS fold's validation data
-        val_preds = model.predict_proba(X_fold_valid)[:, 1]
+        val_preds = model.predict(X_fold_valid)
         fold_precision = precision_score(y_fold_valid, (val_preds > 0.5).astype(int), zero_division=0)
         fold_recall = recall_score(y_fold_valid, (val_preds > 0.5).astype(int), zero_division=0)
         all_precisions.append(fold_precision)
         all_recalls.append(fold_recall)
 
     # Train final model on full training set
-    final_model = LGBMClassifier(**params)
-    final_model.fit(X_train, y_train)
+    final_model = lgb.train(
+        params,
+        lgb.Dataset(X_train, label=y_train),
+        callbacks=[lgb.log_evaluation(period=100)]
+    )
 
     # Compute SHAP values
     explainer = shap.TreeExplainer(final_model, data=X_train)
@@ -140,8 +150,18 @@ def light_gbm_predictor(X_csv, y_csv):
         'importance_std': perm_importance.importances_std
     }).sort_values('importance_mean', ascending=False)
 
-    # Add permutation importance to results
-    results['permutation_importance'] = perm_importance_df
+    # Get the tree information
+    #tree_info = final_model.trees_to_dataframe()
 
-    # Return updated results
+    # Print the first few rows of the tree_info DataFrame
+    #print(tree_info.head())
+
+    # Get individual trees
+    #num_trees = final_model.num_trees()
+    #for tree_index in range(num_trees):
+    #    tree = tree_info[tree_info['tree_index'] == tree_index]
+    #    print(f"Tree {tree_index + 1}:")
+    #    print(tree)
+    #    print("\n")
+
     return final_model, feature_importances, X_val, y_val, id_val, shap_values, shap_expected_value, shap_summary_df, perm_importance_df

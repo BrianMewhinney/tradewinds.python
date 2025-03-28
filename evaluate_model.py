@@ -22,6 +22,7 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
     # Generate predictions
     y_proba = model.predict(X_test)
     y_pred = (y_proba >= threshold).astype(int)
+    #print(y_pred)
 
     # Calculate metrics
     metrics = {

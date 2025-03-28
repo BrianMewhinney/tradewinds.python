@@ -27,5 +27,6 @@ def model_prediction(model, X_test, threshold=0.5):
     # Generate predictions
     y_proba = model.predict(X_df)
     y_pred = (y_proba >= threshold).astype(int)
+    print(y_pred)
 
     return y_pred, fixture_ids
