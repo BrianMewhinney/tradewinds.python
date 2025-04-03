@@ -10,7 +10,7 @@ import shap
 import time
 from datetime import datetime
 
-def light_gbm_predictor(X_csv, y_csv, PredX_csv):
+def light_gbm_predictor(X_csv, y_csv):
     start_time = time.time()
     results = {}
     print(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -38,22 +38,6 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     X_train, X_val = X[:split_index], X[split_index:]
     y_train, y_val = y[:split_index], y[split_index:]
     id_train, id_val = fixture_ids[:split_index], fixture_ids[split_index:]
-
-    # Check if PredX_csv has sufficient length before processing
-    if len(PredX_csv.strip()) > 0:
-        PredX_df = pd.read_csv(StringIO(PredX_csv), header=0)
-        PredX_fixture_ids = PredX_df['fixtureId'].values
-        PredX_df = PredX_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
-
-        # Ensure PredX_df has the same columns as X_df
-        PredX_df = PredX_df[feature_names]
-
-        # Convert to proper format
-        PredX = PredX_df.astype(np.float32)
-
-        # Append PredX to X_val and PredX_fixture_ids to id_val
-        X_val = np.vstack((X_val, PredX))
-        id_val = np.concatenate((id_val, PredX_fixture_ids))
 
     # LightGBM parameters
     params = {
@@ -121,43 +105,5 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     final_model = LGBMClassifier(**params)
     final_model.fit(X_train, y_train)
 
-    # Compute SHAP values
-    explainer = shap.TreeExplainer(final_model, data=X_train)
-    shap_values_raw = explainer(X_val, check_additivity=False)
-    shap_expected_value = explainer.expected_value
-    print(f'Shap Expected Value: {shap_expected_value}')
-    shap_values = shap_values_raw.values.tolist()
-
-    shap_values_array = np.array(shap_values)
-
-    # Calculate mean absolute SHAP values across all validation samples
-    mean_abs_shap = np.abs(shap_values_array).mean(axis=0)
-
-    # Create sorted DataFrame
-    shap_summary_df = pd.DataFrame({
-        'feature': X_val.columns,
-        'mean_abs_shap': mean_abs_shap
-    }).sort_values('mean_abs_shap', ascending=False)
-
-    # Calculate permutation importance
-    perm_importance = permutation_importance(
-        final_model,
-        X_val,
-        y_val,
-        n_repeats=10,
-        random_state=42,
-        scoring='roc_auc'
-    )
-
-    # Create a DataFrame for permutation importance
-    perm_importance_df = pd.DataFrame({
-        'feature': X_val.columns,
-        'importance_mean': perm_importance.importances_mean,
-        'importance_std': perm_importance.importances_std
-    }).sort_values('importance_mean', ascending=False)
-
-    # Add permutation importance to results
-    results['permutation_importance'] = perm_importance_df
-
     # Return updated results
-    return final_model, feature_importances, X_val, y_val, id_val, shap_values, shap_expected_value, shap_summary_df, perm_importance_df
+    return final_model, feature_importances, X_val, y_val, id_val
