@@ -35,7 +35,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     print(f"Split Index {split_index} of {len(X)}")
 
     # Split data into train and validation sets
-    X_train, X_val = X[:split_index], X[split_index:]
+    X_train, X_val = X.iloc[:split_index], X.iloc[split_index:]
     y_train, y_val = y[:split_index], y[split_index:]
     id_train, id_val = fixture_ids[:split_index], fixture_ids[split_index:]
 
@@ -52,8 +52,11 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         PredX = PredX_df.astype(np.float32)
 
         # Append PredX to X_val and PredX_fixture_ids to id_val
-        X_val = np.vstack((X_val, PredX))
+        print(X_val)
+        X_val = pd.concat([X_val, PredX_df], ignore_index=True)
+        print(X_val)
         id_val = np.concatenate((id_val, PredX_fixture_ids))
+        y_val = np.concatenate((y_val, np.zeros(len(PredX_df))))
 
     # LightGBM parameters
     params = {
