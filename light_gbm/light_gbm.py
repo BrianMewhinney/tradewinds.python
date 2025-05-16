@@ -31,7 +31,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     y = y.astype(int)
 
     # Determine the split index
-    split_index = int(len(X) - (len(X) * 0.15))
+    split_index = int(len(X) - (len(X) * 0.2))
     print(f"Split Index {split_index} of {len(X)}")
 
     # Split data into train and validation sets
@@ -125,6 +125,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     final_model.fit(X_train, y_train)
 
     # Compute SHAP values
+    print(f"Before SHAP Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     explainer = shap.TreeExplainer(final_model, data=X_train)
     shap_values_raw = explainer(X_val, check_additivity=False)
     shap_expected_value = explainer.expected_value
@@ -141,6 +142,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'feature': X_val.columns,
         'mean_abs_shap': mean_abs_shap
     }).sort_values('mean_abs_shap', ascending=False)
+    print(f"After SHAP Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Calculate permutation importance
     perm_importance = permutation_importance(
