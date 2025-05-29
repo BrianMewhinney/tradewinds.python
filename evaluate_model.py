@@ -21,6 +21,7 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
 
     # Generate predictions
     y_proba = model.predict(X_test)
+    print(f"PROBA:{y_proba}")
     y_pred = (y_proba >= threshold).astype(int)
     #print(y_pred)
 
@@ -40,4 +41,4 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
         )
     }
     print(metrics['classification_report'])
-    return metrics, y_pred
+    return metrics, y_pred, y_proba

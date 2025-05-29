@@ -59,7 +59,7 @@ def callback(ch, method, properties, body):
     # train the lightgbm model on the data passed in
     trained_model, fi_np, x_val, y_val_np, id_val_np, shap_values, shap_ev, shap_df, pi_df = light_gbm_predictor(data['x'], data['y'], data['predX'])
 
-    test_metrics, y_pred_np = evaluate_model(trained_model, x_val, y_val_np)
+    test_metrics, y_pred_np, y_proba_np = evaluate_model(trained_model, x_val, y_val_np)
 
     print("Message processing complete")
     print(fi_np)
@@ -67,12 +67,13 @@ def callback(ch, method, properties, body):
 
     metrics = make_serializable(test_metrics)
     y_pred = make_serializable(y_pred_np)
+    y_proba = make_serializable(y_proba_np)
     y_val = make_serializable(y_val_np)
     id_val = make_serializable(id_val_np)
     feature_importances = make_serializable(fi_np)
     shap_summary = make_serializable(shap_df)
     permutation_importance = make_serializable(pi_df)
-    send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values, shap_ev, shap_summary, permutation_importance))
+    send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, shap_values, shap_ev, shap_summary, permutation_importance, y_proba))
     #shap_values = make_serializable(shap_values_np)
 #
 #    if ('predX' in data):
