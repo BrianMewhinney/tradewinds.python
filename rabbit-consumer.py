@@ -51,7 +51,7 @@ def send_to_result_queue(data):
 
 
 def callback(ch, method, properties, body):
-    '''
+    #'''
     data = json.loads(body)
     config = data['config']
     print(f"Received execution request for simulation: {config['simulationId']}  execution: {config['executionId']}  league {config['leagueId']}")
@@ -85,7 +85,7 @@ def callback(ch, method, properties, body):
 
 
 
-    '''
+    #'''
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
