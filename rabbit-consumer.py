@@ -62,7 +62,7 @@ def callback(ch, method, properties, body):
     test_metrics, y_pred_np, y_proba_np = evaluate_model(trained_model, x_val, y_val_np)
 
     print("Message processing complete")
-    print(fi_np)
+    #print(fi_np)
     #print(test_metrics["classification_report"])
 
     metrics = make_serializable(test_metrics)
