@@ -20,8 +20,8 @@ def evaluate_model(model, X_test, y_test, threshold=0.6):
     #y_test = pd.read_csv(StringIO(y_test_csv)).squeeze().astype(int)
 
     # Generate predictions
-    y_proba = model.predict(X_test)
-    #print(f"PROBA:{y_proba}")
+    y_proba = model.predict_proba(X_test)[:, 1]
+    print(f"PROBA:{y_proba}")
     y_pred = (y_proba >= threshold).astype(int)
     #print(y_pred)
 
