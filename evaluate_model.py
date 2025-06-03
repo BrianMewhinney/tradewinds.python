@@ -21,7 +21,7 @@ def evaluate_model(model, X_test, y_test, threshold=0.55):
 
     # Generate predictions
     y_proba = model.predict_proba(X_test)[:, 1]
-    print(f"PROBA:{y_proba}")
+    #print(f"PROBA:{y_proba}")
     y_pred = (y_proba >= threshold).astype(int)
     #print(y_pred)
 
@@ -29,8 +29,8 @@ def evaluate_model(model, X_test, y_test, threshold=0.55):
     metrics = {
         'roc_auc_score': roc_auc_score(y_test, y_proba),
         'accuracy': accuracy_score(y_test, y_pred),
-        'precision_class_0': precision_score(y_test, y_pred, pos_label=0, zero_division = 1),
-        'precision_class_1': precision_score(y_test, y_pred, pos_label=1, zero_division = 1),
+        'precision_class_0': precision_score(y_test, y_pred, pos_label=0, zero_division=0),
+        'precision_class_1': precision_score(y_test, y_pred, pos_label=1, zero_division=0),
         'recall_class_0': recall_score(y_test, y_pred, pos_label=0, zero_division = 1),
         'recall_class_1': recall_score(y_test, y_pred, pos_label=1, zero_division = 1),
         'f1_class_0': f1_score(y_test, y_pred, pos_label=0, zero_division = 1),
