@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report, roc_auc_score
 import pandas as pd
 from io import StringIO
 
@@ -27,6 +27,7 @@ def evaluate_model(model, X_test, y_test, threshold=0.6):
 
     # Calculate metrics
     metrics = {
+        'roc_auc_score': roc_auc_score(y_test, y_proba),
         'accuracy': accuracy_score(y_test, y_pred),
         'precision_class_0': precision_score(y_test, y_pred, pos_label=0, zero_division = 1),
         'precision_class_1': precision_score(y_test, y_pred, pos_label=1, zero_division = 1),
@@ -40,5 +41,5 @@ def evaluate_model(model, X_test, y_test, threshold=0.6):
             target_names=['No Draw', 'Draw']
         )
     }
-    print(metrics['classification_report'])
+    print(f"ROC-AUC: {metrics['roc_auc_score']}")
     return metrics, y_pred, y_proba

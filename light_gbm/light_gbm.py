@@ -12,7 +12,7 @@ from datetime import datetime
 
 def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     start_time = time.time()
-    results = {}
+    #results = {}
     print(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Read CSV data from strings
@@ -21,7 +21,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     X_df = X_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
 
     feature_names = np.array(X_df.columns.tolist())  # Convert to array for index access
-    results['feature_names'] = feature_names
+    #results['feature_names'] = feature_names
 
     X = X_df
     y = pd.read_csv(StringIO(y_csv), header=None).values.flatten()
@@ -52,9 +52,9 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         PredX = PredX_df.astype(np.float32)
 
         # Append PredX to X_val and PredX_fixture_ids to id_val
-        print(X_val)
+        #print(X_val)
         X_val = pd.concat([X_val, PredX_df], ignore_index=True)
-        print(X_val)
+        #print(X_val)
         id_val = np.concatenate((id_val, PredX_fixture_ids))
         y_val = np.concatenate((y_val, np.zeros(len(PredX_df))))
 
@@ -162,7 +162,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     }).sort_values('importance_mean', ascending=False)
 
     # Add permutation importance to results
-    results['permutation_importance'] = perm_importance_df
+    #results['permutation_importance'] = perm_importance_df
 
     # Return updated results
     return final_model, feature_importances, X_val, y_val, id_val, shap_values, shap_expected_value, shap_summary_df, perm_importance_df
