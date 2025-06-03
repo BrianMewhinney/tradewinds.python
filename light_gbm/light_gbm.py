@@ -115,8 +115,8 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         # Calculate metrics for THIS fold's validation data
         val_preds = model.predict_proba(X_fold_valid)[:, 1]
         eval_results.append(roc_auc_score(y_train[valid_idx], val_preds))
-        fold_precision = precision_score(y_fold_valid, (val_preds > 0.6).astype(int), zero_division=0)
-        fold_recall = recall_score(y_fold_valid, (val_preds > 0.6).astype(int), zero_division=0)
+        fold_precision = precision_score(y_fold_valid, (val_preds > 0.55).astype(int), zero_division=0)
+        fold_recall = recall_score(y_fold_valid, (val_preds > 0.55).astype(int), zero_division=0)
         all_precisions.append(fold_precision)
         all_recalls.append(fold_recall)
 

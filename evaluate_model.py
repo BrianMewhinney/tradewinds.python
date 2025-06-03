@@ -2,7 +2,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import pandas as pd
 from io import StringIO
 
-def evaluate_model(model, X_test, y_test, threshold=0.6):
+def evaluate_model(model, X_test, y_test, threshold=0.55):
     """
     Evaluates model performance on test data
 
