@@ -12,17 +12,13 @@ from datetime import datetime
 
 def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     start_time = time.time()
-    #results = {}
     print(f"Start Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Read CSV data from strings
     X_df = pd.read_csv(StringIO(X_csv), header=0)
     fixture_ids = X_df['fixtureId'].values
     X_df = X_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
-
     feature_names = np.array(X_df.columns.tolist())  # Convert to array for index access
-    #results['feature_names'] = feature_names
-
     X = X_df
     y = pd.read_csv(StringIO(y_csv), header=None).values.flatten()
 
@@ -52,9 +48,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         PredX = PredX_df.astype(np.float32)
 
         # Append PredX to X_val and PredX_fixture_ids to id_val
-        #print(X_val)
         X_val = pd.concat([X_val, PredX_df], ignore_index=True)
-        #print(X_val)
         id_val = np.concatenate((id_val, PredX_fixture_ids))
         y_val = np.concatenate((y_val, np.zeros(len(PredX_df))))
 
@@ -75,13 +69,11 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
 
     # Cross-validation setup
     skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
-    eval_results = []
 
-    # Initialize feature importances with DataFrame columns
+    # Initialize feature importance and permutation importance with DataFrame columns
     feature_importances = pd.DataFrame(index=X.columns)
-
-    all_precisions = []
-    all_recalls = []
+    perm_importances = pd.DataFrame(index=X.columns)
+    fold_models = []
 
     for fold, (train_idx, valid_idx) in enumerate(skf.split(X_train, y_train)):
         # Data partitioning (using your existing indices)
@@ -98,10 +90,11 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             eval_set=[(X_fold_valid, y_fold_valid)],
             eval_metric=['binary_logloss', 'auc'],
             callbacks=[
-                lgb.early_stopping(stopping_rounds=50, verbose=False),
+                #lgb.early_stopping(stopping_rounds=50, verbose=False),
                 lgb.log_evaluation(period=100)
             ]
         )
+        fold_models.append(model)
 
         # Store feature importance
         feature_importances[f'fold_{fold+1}'] = pd.Series(
@@ -109,60 +102,70 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             index=X.columns
         )
 
-        # Validation predictions
-        # val_preds = model.predict_proba(X_train.iloc[valid_idx])[:, 1]
-
-        # Calculate metrics for THIS fold's validation data
-        val_preds = model.predict_proba(X_fold_valid)[:, 1]
-        eval_results.append(roc_auc_score(y_train[valid_idx], val_preds))
-        fold_precision = precision_score(y_fold_valid, (val_preds > 0.55).astype(int), zero_division=0)
-        fold_recall = recall_score(y_fold_valid, (val_preds > 0.55).astype(int), zero_division=0)
-        all_precisions.append(fold_precision)
-        all_recalls.append(fold_recall)
+        # Store permutation importance
+        perm_importance = permutation_importance(
+            model,
+            X_fold_valid,
+            y_fold_valid,
+            n_repeats=10,
+            random_state=42,
+            scoring='roc_auc'
+        )
+        perm_importances[f'fold_{fold+1}'] = pd.Series(
+            perm_importance.importances_mean,
+            index=X.columns
+        )
 
     # Train final model on full training set
-    final_model = LGBMClassifier(**params)
-    final_model.fit(X_train, y_train)
+    #final_model = LGBMClassifier(**params)
+    #final_model.fit(X_train, y_train)
 
     # Compute SHAP values
-    print(f"Before SHAP Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    explainer = shap.TreeExplainer(final_model, data=X_train)
-    shap_values_raw = explainer(X_val, check_additivity=False)
-    shap_expected_value = explainer.expected_value
-    print(f'Shap Expected Value: {shap_expected_value}')
-    shap_values = shap_values_raw.values.tolist()
-
-    shap_values_array = np.array(shap_values)
+    #print(f"Before SHAP Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    #explainer = shap.TreeExplainer(final_model, data=X_train)
+    #shap_values_raw = explainer(X_val.sample(min(100, len(X_val))), check_additivity=False)
+    #shap_expected_value = explainer.expected_value
+    #print(f'Shap Expected Value: {shap_expected_value}')
+    #shap_values = shap_values_raw.values.tolist()
+    #shap_values_array = np.array(shap_values)
 
     # Calculate mean absolute SHAP values across all validation samples
-    mean_abs_shap = np.abs(shap_values_array).mean(axis=0)
+    #mean_abs_shap = np.abs(shap_values_array).mean(axis=0)
 
     # Create sorted DataFrame
-    shap_summary_df = pd.DataFrame({
-        'feature': X_val.columns,
-        'mean_abs_shap': mean_abs_shap
-    }).sort_values('mean_abs_shap', ascending=False)
-    print(f"After SHAP Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    #shap_summary_df = pd.DataFrame({
+    #    'feature': X_val.columns,
+    #    'mean_abs_shap': mean_abs_shap
+    #}).sort_values('mean_abs_shap', ascending=False)
+    #print(f"After SHAP Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Calculate permutation importance
-    perm_importance = permutation_importance(
-        final_model,
-        X_val,
-        y_val,
-        n_repeats=10,
-        random_state=42,
-        scoring='roc_auc'
-    )
+    #perm_importance = permutation_importance(
+    #    final_model,
+    #    X_val,
+    #    y_val,
+    #    n_repeats=10,
+    #    random_state=42,
+    #    scoring='roc_auc'
+    #)
 
     # Create a DataFrame for permutation importance
-    perm_importance_df = pd.DataFrame({
-        'feature': X_val.columns,
-        'importance_mean': perm_importance.importances_mean,
-        'importance_std': perm_importance.importances_std
-    }).sort_values('importance_mean', ascending=False)
-
-    # Add permutation importance to results
-    #results['permutation_importance'] = perm_importance_df
+    #perm_importance_df = pd.DataFrame({
+    #    'feature': X_val.columns,
+    #    'importance_mean': perm_importance.importances_mean,
+    #    'importance_std': perm_importance.importances_std
+    #}).sort_values('importance_mean', ascending=False)
 
     # Return updated results
-    return final_model, feature_importances, X_val, y_val, id_val, shap_values, shap_expected_value, shap_summary_df, perm_importance_df
+    return {
+        'fold_models': fold_models,
+        #'final_model': final_model,
+        'feature_importances': feature_importances,
+        'perm_importances': perm_importances
+        'X_val': X_val,
+        'y_val': y_val,
+        'id_val': id_val,
+        #'shap_values': shap_values,
+        #'shap_expected_value': shap_expected_value,
+        #'shap_summary_df': shap_summary_df
+    }
