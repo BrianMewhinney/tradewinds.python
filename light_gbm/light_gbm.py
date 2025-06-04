@@ -90,8 +90,8 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             eval_set=[(X_fold_valid, y_fold_valid)],
             eval_metric=['binary_logloss', 'auc'],
             callbacks=[
-                #lgb.early_stopping(stopping_rounds=50, verbose=False),
-                lgb.log_evaluation(period=100)
+                lgb.early_stopping(stopping_rounds=50, verbose=False),
+                #lgb.log_evaluation(period=100)
             ]
         )
         fold_models.append(model)
