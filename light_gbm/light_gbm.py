@@ -161,7 +161,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'fold_models': fold_models,
         #'final_model': final_model,
         'feature_importances': feature_importances,
-        'perm_importances': perm_importances
+        'perm_importances': perm_importances,
         'X_val': X_val,
         'y_val': y_val,
         'id_val': id_val,

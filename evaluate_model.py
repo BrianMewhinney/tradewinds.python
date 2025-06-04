@@ -3,13 +3,12 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 
-def evaluate_model(fold_models, model, X_test, y_test, threshold=0.55):
+def evaluate_model(fold_models, X_test, y_test, threshold=0.55):
     """
     Evaluates model performance on test data
 
     Args:
         fold_models: Stratified models
-        model: Trained LightGBM model
         X_test_csv (str): CSV string of test features
         y_test_csv (str): CSV string of test labels
         threshold (float): Classification cutoff probability
@@ -25,7 +24,7 @@ def evaluate_model(fold_models, model, X_test, y_test, threshold=0.55):
     y_proba = np.zeros(len(X_test))  # Array for final ensemble predictions
     for fold_model in fold_models:
         fold_proba = fold_model.predict_proba(X_test)[:, 1]  # Add probabilities
-        print(fold_proba)
+        #print(fold_proba)
         y_proba += fold_proba
     y_proba /= len(fold_models)  # Average the proba
     y_pred = (y_proba >= threshold).astype(int)
