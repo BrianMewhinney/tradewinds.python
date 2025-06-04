@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 
-def evaluate_model(fold_models, X_test, y_test, threshold=0.55):
+def evaluate_model(fold_models, X_test, y_test, threshold=0.5):
     """
     Evaluates model performance on test data
 
