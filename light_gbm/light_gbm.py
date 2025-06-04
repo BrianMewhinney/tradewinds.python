@@ -35,6 +35,11 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     y_train, y_val = y[:split_index], y[split_index:]
     id_train, id_val = fixture_ids[:split_index], fixture_ids[split_index:]
 
+    #pd.set_option('display.max_columns', None)
+    #print(X_train.describe())
+    # Optionally reset to default after
+    #pd.reset_option('display.max_columns')
+
     # Check if PredX_csv has sufficient length before processing
     if len(PredX_csv.strip()) > 0:
         PredX_df = pd.read_csv(StringIO(PredX_csv), header=0)
@@ -64,7 +69,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'bagging_freq': 5,
         'verbose': -1,
         'seed': 42,
-        'n_estimators': 500,
+        #'n_estimators': 500,
         'is_unbalance': True  # Crucial for draw prediction imbalance
     }
 
@@ -91,7 +96,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             eval_set=[(X_fold_valid, y_fold_valid)],
             eval_metric=['binary_logloss', 'auc'],
             callbacks=[
-                lgb.early_stopping(stopping_rounds=50, verbose=False),
+                #lgb.early_stopping(stopping_rounds=10, verbose=False),
                 #lgb.log_evaluation(period=50)
             ]
         )
