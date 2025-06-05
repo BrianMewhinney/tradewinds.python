@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from io import StringIO
 
-def evaluate_model(fold_models, X_test, y_test, threshold=0.5):
+def evaluate_model(fold_models, X_test, y_test, threshold=0.32):
     """
     Evaluates model performance on test data
 
@@ -18,9 +18,6 @@ def evaluate_model(fold_models, X_test, y_test, threshold=0.5):
     """
 
     # Generate predictions
-    #y_proba = model.predict_proba(X_test)[:, 1]
-    #y_pred = (y_proba >= threshold).astype(int)
-
     y_proba = np.zeros(len(X_test))  # Array for final ensemble predictions
     for fold_model in fold_models:
         fold_proba = fold_model.predict_proba(X_test)[:, 1]  # Add probabilities

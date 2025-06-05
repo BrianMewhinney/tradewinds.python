@@ -23,6 +23,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     y = pd.read_csv(StringIO(y_csv), header=None).values.flatten()
 
     # Convert to proper formats
+    print(X)
     X = X.astype(np.float32)
     y = y.astype(int)
 
@@ -62,14 +63,15 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'objective': 'binary',
         'metric': ['binary_logloss', 'auc'],
         'boosting_type': 'gbdt',
-        'num_leaves': 30,
-        'learning_rate': 0.05,
-        'feature_fraction': 0.9,
+        'num_leaves': 40,
+        'learning_rate': 0.03,
+        'feature_fraction': 0.8,
         'bagging_fraction': 0.8,
         'bagging_freq': 5,
         'verbose': -1,
         'seed': 42,
-        #'n_estimators': 500,
+        'n_jobs': -1,
+        'n_estimators': 1000,
         'is_unbalance': True  # Crucial for draw prediction imbalance
     }
 
@@ -96,11 +98,11 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             eval_set=[(X_fold_valid, y_fold_valid)],
             eval_metric=['binary_logloss', 'auc'],
             callbacks=[
-                #lgb.early_stopping(stopping_rounds=10, verbose=False),
+                lgb.early_stopping(stopping_rounds=50, verbose=False),
                 #lgb.log_evaluation(period=50)
             ]
         )
-        #print(model.best_iteration_)
+        print(model.best_iteration_)
         fold_models.append(model)
 
         # Store feature importance
@@ -122,6 +124,22 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             perm_importance.importances_mean,
             index=X.columns
         )
+
+    # Return updated results
+    return {
+        'fold_models': fold_models,
+        #'final_model': final_model,
+        'feature_importances': feature_importances,
+        'perm_importances': perm_importances,
+        'X_val': X_val,
+        'y_val': y_val,
+        'id_val': id_val,
+        #'shap_values': shap_values,
+        #'shap_expected_value': shap_expected_value,
+        #'shap_summary_df': shap_summary_df
+    }
+
+
 
     # Train final model on full training set
     #final_model = LGBMClassifier(**params)
@@ -162,17 +180,3 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     #    'importance_mean': perm_importance.importances_mean,
     #    'importance_std': perm_importance.importances_std
     #}).sort_values('importance_mean', ascending=False)
-
-    # Return updated results
-    return {
-        'fold_models': fold_models,
-        #'final_model': final_model,
-        'feature_importances': feature_importances,
-        'perm_importances': perm_importances,
-        'X_val': X_val,
-        'y_val': y_val,
-        'id_val': id_val,
-        #'shap_values': shap_values,
-        #'shap_expected_value': shap_expected_value,
-        #'shap_summary_df': shap_summary_df
-    }
