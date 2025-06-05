@@ -61,7 +61,7 @@ def callback(ch, method, properties, body):
     #trained_model, fi_np, x_val, y_val_np, id_val_np, shap_values, shap_ev, shap_df, pi_df =
 
     # Capture the results of the testing set on the trained model
-    test_metrics, y_pred_np, y_proba_np = evaluate_model(results['fold_models'], results['X_val'], results['y_val'])
+    test_metrics, y_pred_np, y_proba_np = evaluate_model(results['fold_models'], results['X_val'], results['y_val'], config['threshold'])
 
     metrics = make_serializable(test_metrics)
     y_pred = make_serializable(y_pred_np)
