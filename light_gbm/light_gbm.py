@@ -78,10 +78,14 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     # Cross-validation setup
     skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
+    oof_preds = np.zeros(len(X))  # OOF probabilities
+    oof_true = np.zeros(len(X))   # OOF true labels
+    oof_fixture_ids = np.empty(len(X), dtype=fixture_ids.dtype)
+    fold_models = []
+
     # Initialize feature importance and permutation importance with DataFrame columns
     feature_importances = pd.DataFrame(index=X.columns)
     perm_importances = pd.DataFrame(index=X.columns)
-    fold_models = []
 
     for fold, (train_idx, valid_idx) in enumerate(skf.split(X_train, y_train)):
         # Data partitioning (using your existing indices)
@@ -103,7 +107,26 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             ]
         )
         print(model.best_iteration_)
+        booster = model.booster_
+        dumped = booster.dump_model()
+
+        # Each tree is a dict in dumped['tree_info']
+        leaves_per_tree = [tree['num_leaves'] for tree in dumped['tree_info']]
+        max_leaves_used = max(leaves_per_tree)
+        min_leaves_used = min(leaves_per_tree)
+        avg_leaves_used = sum(leaves_per_tree) / len(leaves_per_tree)
+
+        print(f"Maximum leaves used in any tree: {max_leaves_used}")
+        print(f"Minimum leaves used in any tree: {min_leaves_used}")
+        print(f"Average leaves per tree: {avg_leaves_used:.2f}")
+
         fold_models.append(model)
+
+        # Store OOF predictions for this fold
+        valid_pred_proba = model.predict_proba(X_train.iloc[valid_idx])[:, 1]
+        oof_preds[valid_idx] = valid_pred_proba
+        oof_true[valid_idx] = y_train[valid_idx]
+        oof_fixture_ids[valid_idx] = fixture_ids[valid_idx]
 
         # Store feature importance
         feature_importances[f'fold_{fold+1}'] = pd.Series(
@@ -128,12 +151,16 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     # Return updated results
     return {
         'fold_models': fold_models,
-        #'final_model': final_model,
+        'oof_preds': oof_preds,
+        'oof_true': oof_true,
+        'oof_fixture_ids': oof_fixture_ids,
         'feature_importances': feature_importances,
         'perm_importances': perm_importances,
         'X_val': X_val,
         'y_val': y_val,
         'id_val': id_val,
+
+        #'final_model': final_model,
         #'shap_values': shap_values,
         #'shap_expected_value': shap_expected_value,
         #'shap_summary_df': shap_summary_df
