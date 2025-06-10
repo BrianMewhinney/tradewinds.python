@@ -63,15 +63,15 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'objective': 'binary',
         'metric': ['binary_logloss', 'auc'],
         'boosting_type': 'gbdt',
-        'num_leaves': 128,
-        'learning_rate': 0.01,
+        'num_leaves': 64,
+        'learning_rate': 0.03,
         'feature_fraction': 0.8,
         'bagging_fraction': 0.8,
         'bagging_freq': 5,
         'verbose': -1,
         'seed': 42,
         'n_jobs': -1,
-        'n_estimators': 2000,
+        'n_estimators': 1000,
         'is_unbalance': True  # Crucial for draw prediction imbalance
     }
 
