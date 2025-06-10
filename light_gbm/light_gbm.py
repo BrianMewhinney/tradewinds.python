@@ -43,6 +43,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
 
     # Check if PredX_csv has sufficient length before processing
     if len(PredX_csv.strip()) > 0:
+        print("GREATER THAN 0")
         PredX_df = pd.read_csv(StringIO(PredX_csv), header=0)
         PredX_fixture_ids = PredX_df['fixtureId'].values
         PredX_df = PredX_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
@@ -78,9 +79,9 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     # Cross-validation setup
     skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
-    oof_preds = np.zeros(len(X))  # OOF probabilities
-    oof_true = np.zeros(len(X))   # OOF true labels
-    oof_fixture_ids = np.empty(len(X), dtype=fixture_ids.dtype)
+    oof_preds = np.zeros(len(X_train))  # OOF probabilities
+    oof_true = np.zeros(len(X_train))   # OOF true labels
+    oof_fixture_ids = np.empty(len(X_train), dtype=fixture_ids.dtype)
     fold_models = []
 
     # Initialize feature importance and permutation importance with DataFrame columns
