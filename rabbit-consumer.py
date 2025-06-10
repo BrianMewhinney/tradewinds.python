@@ -9,7 +9,7 @@ from model_prediction import model_prediction
 from sklearn.metrics import f1_score
 
 #CONNECTION_HOST = '192.168.1.53'
-CONNECTION_HOST = '192.168.4.64'
+CONNECTION_HOST = '192.168.4.77'
 
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(
