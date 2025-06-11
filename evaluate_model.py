@@ -21,7 +21,7 @@ def evaluate_model(fold_models, X_test, y_test, threshold):
     y_proba = np.zeros(len(X_test))  # Array for final ensemble predictions
     for fold_model in fold_models:
         fold_proba = fold_model.predict_proba(X_test)[:, 1]  # Add probabilities
-        print(fold_proba)
+        #print(fold_proba)
         y_proba += fold_proba
 
         #best_threshold, best_score = find_best_threshold(y_test, y_proba)

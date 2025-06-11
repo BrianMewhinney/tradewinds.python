@@ -87,6 +87,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     # Initialize feature importance and permutation importance with DataFrame columns
     feature_importances = pd.DataFrame(index=X.columns)
     perm_importances = pd.DataFrame(index=X.columns)
+    fold_auc_scores = []
 
     for fold, (train_idx, valid_idx) in enumerate(skf.split(X_train, y_train)):
         # Data partitioning (using your existing indices)
@@ -129,6 +130,10 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         oof_true[valid_idx] = y_train[valid_idx]
         oof_fixture_ids[valid_idx] = fixture_ids[valid_idx]
 
+        fold_auc = roc_auc_score(y_fold_valid, valid_pred_proba)
+        print(f"Fold {fold+1} ROC AUC: {fold_auc:.4f}")
+        fold_auc_scores.append(fold_auc)
+
         # Store feature importance
         feature_importances[f'fold_{fold+1}'] = pd.Series(
             model.feature_importances_,
@@ -149,6 +154,9 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             index=X.columns
         )
 
+    mean_auc = np.mean(fold_auc_scores)
+    print(f"Mean ROC AUC across folds: {mean_auc:.4f}")
+
     # Return updated results
     return {
         'fold_models': fold_models,
@@ -160,6 +168,8 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'X_val': X_val,
         'y_val': y_val,
         'id_val': id_val,
+        'fold_auc_scores': fold_auc_scores,
+        'mean_auc': mean_auc,
 
         #'final_model': final_model,
         #'shap_values': shap_values,
