@@ -36,11 +36,6 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     y_train, y_val = y[:split_index], y[split_index:]
     id_train, id_val = fixture_ids[:split_index], fixture_ids[split_index:]
 
-    #pd.set_option('display.max_columns', None)
-    #print(X_train.describe())
-    # Optionally reset to default after
-    #pd.reset_option('display.max_columns')
-
     # Check if PredX_csv has sufficient length before processing
     if len(PredX_csv.strip()) > 0:
         print("GREATER THAN 0")
@@ -77,24 +72,41 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     }
 
     # Cross-validation setup
-    skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+    #skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
-    oof_preds = np.zeros(len(X_train))  # OOF probabilities
-    oof_true = np.zeros(len(X_train))   # OOF true labels
-    oof_fixture_ids = np.empty(len(X_train), dtype=fixture_ids.dtype)
+    # Walk-forward (expanding window) cross-validation setup
+    n_splits = 5  # Or more, depending on your data size
+    fold_size = (len(X_train) // (n_splits + 1))
+    fold_auc_scores = []
     fold_models = []
 
     # Initialize feature importance and permutation importance with DataFrame columns
     feature_importances = pd.DataFrame(index=X.columns)
     perm_importances = pd.DataFrame(index=X.columns)
-    fold_auc_scores = []
 
-    for fold, (train_idx, valid_idx) in enumerate(skf.split(X_train, y_train)):
+    oof_preds = np.zeros(len(X_train))  # OOF probabilities
+    oof_true = np.zeros(len(X_train))   # OOF true labels
+    oof_fixture_ids = np.empty(len(X_train), dtype=fixture_ids.dtype)
+
+    #for fold , (train_idx, valid_idx) in enumerate(skf.split(X_train, y_train)):
         # Data partitioning (using your existing indices)
-        X_fold_train = X_train.iloc[train_idx]  # DataFrame
-        y_fold_train = y_train[train_idx]       # Array
-        X_fold_valid = X_train.iloc[valid_idx]  # DataFrame
-        y_fold_valid = y_train[valid_idx]       # Array
+        #X_fold_train = X_train.iloc[train_idx]  # DataFrame
+        #y_fold_train = y_train[train_idx]       # Array
+        #X_fold_valid = X_train.iloc[valid_idx]  # DataFrame
+        #y_fold_valid = y_train[valid_idx]       # Array
+    for fold in range(n_splits):
+        train_end = (fold + 1) * fold_size
+        val_start = train_end
+        val_end = val_start + fold_size
+        if val_end > len(X_train):
+            val_end = len(X_train)
+        if val_start >= len(X_train):
+            break  # No more validation blocks
+
+        X_fold_train = X_train.iloc[:train_end]
+        y_fold_train = y_train[:train_end]
+        X_fold_valid = X_train.iloc[val_start:val_end]
+        y_fold_valid = y_train[val_start:val_end]
 
         # Train model on X_fold_train/y_fold_train
         model = LGBMClassifier(**params)
@@ -108,7 +120,10 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
                 #lgb.log_evaluation(period=50)
             ]
         )
-        print(model.best_iteration_)
+        print(f"Fold {fold+1} best iteration: {model.best_iteration_}")
+        fold_models.append(model)
+
+
         booster = model.booster_
         dumped = booster.dump_model()
 
@@ -122,17 +137,22 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         print(f"Minimum leaves used in any tree: {min_leaves_used}")
         print(f"Average leaves per tree: {avg_leaves_used:.2f}")
 
-        fold_models.append(model)
-
-        # Store OOF predictions for this fold
-        valid_pred_proba = model.predict_proba(X_train.iloc[valid_idx])[:, 1]
-        oof_preds[valid_idx] = valid_pred_proba
-        oof_true[valid_idx] = y_train[valid_idx]
-        oof_fixture_ids[valid_idx] = fixture_ids[valid_idx]
+        # Store OOF predictions for this fold (only for validation indices)
+        valid_indices = range(val_start, val_end)
+        valid_pred_proba = model.predict_proba(X_fold_valid)[:, 1]
+        oof_preds[val_start:val_end] = valid_pred_proba
+        oof_true[val_start:val_end] = y_fold_valid
+        oof_fixture_ids[val_start:val_end] = fixture_ids[val_start:val_end]
 
         fold_auc = roc_auc_score(y_fold_valid, valid_pred_proba)
         print(f"Fold {fold+1} ROC AUC: {fold_auc:.4f}")
         fold_auc_scores.append(fold_auc)
+
+        # Store OOF predictions for this fold
+        #valid_pred_proba = model.predict_proba(X_train.iloc[valid_idx])[:, 1]
+        #oof_preds[valid_idx] = valid_pred_proba
+        #oof_true[valid_idx] = y_train[valid_idx]
+        #oof_fixture_ids[valid_idx] = fixture_ids[valid_idx]
 
         # Store feature importance
         feature_importances[f'fold_{fold+1}'] = pd.Series(
