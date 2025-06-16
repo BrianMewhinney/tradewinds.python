@@ -75,7 +75,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     #skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
     # Walk-forward (expanding window) cross-validation setup
-    n_splits = 5  # Or more, depending on your data size
+    n_splits = 8  # Or more, depending on your data size
     fold_size = (len(X_train) // (n_splits + 1))
     fold_auc_scores = []
     fold_models = []
