@@ -28,7 +28,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     y = y.astype(int)
 
     # Determine the split index
-    split_index = int(len(X) - (len(X) * 0.1))
+    split_index = int(len(X) - (len(X) * 0.15))
     print(f"Split Index {split_index} of {len(X)}")
 
     # Split data into train and validation sets
@@ -75,7 +75,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     #skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
     # Walk-forward (expanding window) cross-validation setup
-    n_splits = 9  # Or more, depending on your data size
+    n_splits = 6  # Or more, depending on your data size
     fold_size = (len(X_train) // (n_splits + 1))
     fold_auc_scores = []
     fold_models = []
