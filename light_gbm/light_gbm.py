@@ -28,7 +28,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     y = y.astype(int)
 
     # Determine the split index
-    split_index = int(len(X) - (len(X) * 0.15))
+    split_index = int(len(X) - (len(X) * 0.1))
     print(f"Split Index {split_index} of {len(X)}")
 
     # Split data into train and validation sets
@@ -59,7 +59,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'objective': 'binary',
         'metric': ['binary_logloss', 'auc'],
         'boosting_type': 'gbdt',
-        'num_leaves': 64,
+        'num_leaves': 128,
         'learning_rate': 0.01,
         'feature_fraction': 0.8,
         'bagging_fraction': 0.8,
@@ -67,7 +67,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'verbose': -1,
         'seed': 42,
         'n_jobs': -1,
-        'n_estimators': 1500,
+        'n_estimators': 2000,
         'is_unbalance': True  # Crucial for draw prediction imbalance
     }
 
