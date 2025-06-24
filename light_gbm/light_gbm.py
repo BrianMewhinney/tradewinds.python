@@ -3,7 +3,7 @@ import numpy as np
 from io import StringIO
 import lightgbm as lgb
 from lightgbm import LGBMClassifier
-from sklearn.metrics import roc_auc_score, classification_report, precision_score, recall_score
+from sklearn.metrics import roc_auc_score, classification_report, precision_score, recall_score, average_precision_score
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.inspection import permutation_importance
 import shap
@@ -60,6 +60,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     n_splits = 10  # Or more, depending on your data size
     fold_size = (len(X_train) // (n_splits + 1))
     fold_auc_scores = []
+    fold_pr_auc_scores = []
     fold_models = []
 
     # Initialize feature importance and permutation importance with DataFrame columns
@@ -130,6 +131,10 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         print(f"Fold {fold+1} ROC AUC: {fold_auc:.4f}")
         fold_auc_scores.append(fold_auc)
 
+        fold_pr_auc = average_precision_score(y_fold_valid, valid_pred_proba)
+        print(f"Fold {fold+1} PR AUC: {fold_pr_auc:.4f}")
+        fold_pr_auc_scores.append(fold_pr_auc)
+
         # Store OOF predictions for this fold
         #valid_pred_proba = model.predict_proba(X_train.iloc[valid_idx])[:, 1]
         #oof_preds[valid_idx] = valid_pred_proba
@@ -159,6 +164,9 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     mean_auc = np.mean(fold_auc_scores)
     print(f"Mean ROC AUC across folds: {mean_auc:.4f}")
 
+    mean_pr_auc = np.mean(fold_pr_auc_scores)
+    print(f"Mean PR AUC across folds: {mean_pr_auc:.4f}")
+
     # Return updated results
     return {
         'fold_models': fold_models,
@@ -171,6 +179,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'y_val': y_val,
         'id_val': id_val,
         'fold_auc_scores': fold_auc_scores,
+        'fold_pr_auc_scores': fold_pr_auc_scores,
         'mean_auc': mean_auc,
 
         #'final_model': final_model,

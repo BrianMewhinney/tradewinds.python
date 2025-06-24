@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report, roc_auc_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report, roc_auc_score, average_precision_score
 import pandas as pd
 import numpy as np
 from io import StringIO
@@ -36,6 +36,7 @@ def evaluate_model(fold_models, X_test, y_test, threshold):
     # Calculate metrics
     metrics = {
         'roc_auc_score': roc_auc_score(y_test, y_proba),
+        'pr_roc_score': average_precision_score(y_test, y_proba),
         'accuracy': accuracy_score(y_test, y_pred),
         'precision_class_0': precision_score(y_test, y_pred, pos_label=0, zero_division=1),
         'precision_class_1': precision_score(y_test, y_pred, pos_label=1, zero_division=1),
