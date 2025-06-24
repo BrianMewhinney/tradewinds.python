@@ -36,24 +36,6 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     y_train, y_val = y[:split_index], y[split_index:]
     id_train, id_val = fixture_ids[:split_index], fixture_ids[split_index:]
 
-    # Check if PredX_csv has sufficient length before processing
-    if len(PredX_csv.strip()) > 0:
-        print("GREATER THAN 0")
-        PredX_df = pd.read_csv(StringIO(PredX_csv), header=0)
-        PredX_fixture_ids = PredX_df['fixtureId'].values
-        PredX_df = PredX_df.drop(columns=['fixtureId'])  # Remove from features but keep IDs
-
-        # Ensure PredX_df has the same columns as X_df
-        PredX_df = PredX_df[feature_names]
-
-        # Convert to proper format
-        PredX = PredX_df.astype(np.float32)
-
-        # Append PredX to X_val and PredX_fixture_ids to id_val
-        X_val = pd.concat([X_val, PredX_df], ignore_index=True)
-        id_val = np.concatenate((id_val, PredX_fixture_ids))
-        y_val = np.concatenate((y_val, np.zeros(len(PredX_df))))
-
     # LightGBM parameters
     params = {
         'objective': 'binary',
@@ -75,7 +57,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     #skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
     # Walk-forward (expanding window) cross-validation setup
-    n_splits = 9  # Or more, depending on your data size
+    n_splits = 10  # Or more, depending on your data size
     fold_size = (len(X_train) // (n_splits + 1))
     fold_auc_scores = []
     fold_models = []
