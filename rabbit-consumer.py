@@ -96,6 +96,8 @@ def callback(ch, method, properties, body):
     test_metrics['oof_fixture_ids'] = oof_fixture_ids
     test_metrics['mean_auc'] = results['mean_auc']
     test_metrics['fold_auc_scores'] = results['fold_auc_scores']
+    test_metrics['fold_pr_auc_scores'] = results['fold_pr_auc_scores']
+
 
     metrics = make_serializable(test_metrics)
     y_pred = make_serializable(y_pred_np)
