@@ -57,8 +57,9 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     #skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
     # Walk-forward (expanding window) cross-validation setup
-    n_splits = 10  # Or more, depending on your data size
+    n_splits = 8  # Or more, depending on your data size
     fold_size = (len(X_train) // (n_splits + 1))
+    print(f'Fold size: {fold_size}')
     fold_auc_scores = []
     fold_pr_auc_scores = []
     fold_models = []
@@ -71,12 +72,6 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     oof_true = np.zeros(len(X_train))   # OOF true labels
     oof_fixture_ids = np.empty(len(X_train), dtype=fixture_ids.dtype)
 
-    #for fold , (train_idx, valid_idx) in enumerate(skf.split(X_train, y_train)):
-        # Data partitioning (using your existing indices)
-        #X_fold_train = X_train.iloc[train_idx]  # DataFrame
-        #y_fold_train = y_train[train_idx]       # Array
-        #X_fold_valid = X_train.iloc[valid_idx]  # DataFrame
-        #y_fold_valid = y_train[valid_idx]       # Array
     for fold in range(n_splits):
         train_end = (fold + 1) * fold_size
         val_start = train_end
