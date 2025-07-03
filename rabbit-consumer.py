@@ -105,10 +105,9 @@ def callback(ch, method, properties, body):
     y_val = make_serializable(results['y_val'])
     id_val = make_serializable(results['id_val'])
     feature_importances = make_serializable(results['feature_importances'])
-    #shap_summary = make_serializable(results['shap_summary_df'])
     permutation_importance = make_serializable(results['perm_importances'])
-    send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, permutation_importance, y_proba))
-    #shap_values = make_serializable(shap_values_np)
+    shap_importances = make_serializable(results['shap_importances'])
+    send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, permutation_importance, shap_importances, y_proba))
 
     #'''
 

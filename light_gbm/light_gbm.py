@@ -67,6 +67,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     # Initialize feature importance and permutation importance with DataFrame columns
     feature_importances = pd.DataFrame(index=X.columns)
     perm_importances = pd.DataFrame(index=X.columns)
+    shap_importances = pd.DataFrame(index=X.columns)
 
     oof_preds = np.zeros(len(X_train))  # OOF probabilities
     oof_true = np.zeros(len(X_train))   # OOF true labels
@@ -130,12 +131,6 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         print(f"Fold {fold+1} PR AUC: {fold_pr_auc:.4f}")
         fold_pr_auc_scores.append(fold_pr_auc)
 
-        # Store OOF predictions for this fold
-        #valid_pred_proba = model.predict_proba(X_train.iloc[valid_idx])[:, 1]
-        #oof_preds[valid_idx] = valid_pred_proba
-        #oof_true[valid_idx] = y_train[valid_idx]
-        #oof_fixture_ids[valid_idx] = fixture_ids[valid_idx]
-
         # Store feature importance
         feature_importances[f'fold_{fold+1}'] = pd.Series(
             model.feature_importances_,
@@ -156,6 +151,21 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
             index=X.columns
         )
 
+        # Store SHAP values
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(X_fold_valid)
+        # For binary classification, shap_values is a list of arrays
+        if isinstance(shap_values, list):
+            shap_vals = shap_values[1]  # Use the positive class
+        else:
+            shap_vals = shap_values
+        # Mean absolute SHAP value per feature
+        mean_abs_shap = np.abs(shap_vals).mean(axis=0)
+        shap_importances[f'fold_{fold+1}'] = pd.Series(
+            mean_abs_shap,
+            index=X.columns
+        )
+
     mean_auc = np.mean(fold_auc_scores)
     print(f"Mean ROC AUC across folds: {mean_auc:.4f}")
 
@@ -170,17 +180,13 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'oof_fixture_ids': oof_fixture_ids,
         'feature_importances': feature_importances,
         'perm_importances': perm_importances,
+        'shap_importances': shap_importances,
         'X_val': X_val,
         'y_val': y_val,
         'id_val': id_val,
         'fold_auc_scores': fold_auc_scores,
         'fold_pr_auc_scores': fold_pr_auc_scores,
         'mean_auc': mean_auc,
-
-        #'final_model': final_model,
-        #'shap_values': shap_values,
-        #'shap_expected_value': shap_expected_value,
-        #'shap_summary_df': shap_summary_df
     }
 
 
