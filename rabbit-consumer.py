@@ -84,6 +84,7 @@ def callback(ch, method, properties, body):
     oof_preds = results['oof_preds']
     oof_true = results['oof_true']
     oof_fixture_ids = results['oof_fixture_ids']
+    oof_folds = results['oof_folds']
 
     #oof_preds, oof_true = results['oof_preds'], results['oof_true']
     # Find best threshold on OOF predictions
@@ -94,6 +95,7 @@ def callback(ch, method, properties, body):
     test_metrics['oof_preds'] = oof_preds
     test_metrics['oof_true'] = oof_true
     test_metrics['oof_fixture_ids'] = oof_fixture_ids
+    test_metrics['oof_folds'] = oof_folds
     test_metrics['mean_auc'] = results['mean_auc']
     test_metrics['fold_auc_scores'] = results['fold_auc_scores']
     test_metrics['fold_pr_auc_scores'] = results['fold_pr_auc_scores']

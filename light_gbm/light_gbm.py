@@ -72,6 +72,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     oof_preds = np.zeros(len(X_train))  # OOF probabilities
     oof_true = np.zeros(len(X_train))   # OOF true labels
     oof_fixture_ids = np.empty(len(X_train), dtype=fixture_ids.dtype)
+    oof_folds = []
 
     for fold in range(n_splits):
         train_end = (fold + 1) * fold_size
@@ -122,6 +123,16 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         oof_preds[val_start:val_end] = valid_pred_proba
         oof_true[val_start:val_end] = y_fold_valid
         oof_fixture_ids[val_start:val_end] = fixture_ids[val_start:val_end]
+
+        fold_oof = [
+            {
+                'fixtureId': fixture_ids[i],
+                'probability': float(valid_pred_proba[j]),
+                'trueLabel': int(y_fold_valid[j]),
+            }
+            for j, i in enumerate(valid_indices)
+        ]
+        oof_folds.append(fold_oof)
 
         fold_auc = roc_auc_score(y_fold_valid, valid_pred_proba)
         print(f"Fold {fold+1} ROC AUC: {fold_auc:.4f}")
@@ -178,6 +189,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'oof_preds': oof_preds[valid_oof_start:],
         'oof_true': oof_true[valid_oof_start:],
         'oof_fixture_ids': oof_fixture_ids[valid_oof_start:],
+        'oof_folds': oof_folds,
         'feature_importances': feature_importances,
         'perm_importances': perm_importances,
         'shap_importances': shap_importances,
