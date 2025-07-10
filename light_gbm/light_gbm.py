@@ -171,13 +171,13 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
 
     mean_pr_auc = np.mean(fold_pr_auc_scores)
     print(f"Mean PR AUC across folds: {mean_pr_auc:.4f}")
-
+    valid_oof_start = fold_size
     # Return updated results
     return {
         'fold_models': fold_models,
-        'oof_preds': oof_preds,
-        'oof_true': oof_true,
-        'oof_fixture_ids': oof_fixture_ids,
+        'oof_preds': oof_preds[valid_oof_start:],
+        'oof_true': oof_true[valid_oof_start:],
+        'oof_fixture_ids': oof_fixture_ids[valid_oof_start:],
         'feature_importances': feature_importances,
         'perm_importances': perm_importances,
         'shap_importances': shap_importances,
