@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from evaluate_model import evaluate_model
 from model_prediction import model_prediction
+from evaluate_predictions import evaluate_predictions
 from sklearn.metrics import f1_score
 
 #CONNECTION_HOST = '192.168.1.53'
@@ -88,10 +89,10 @@ def callback(ch, method, properties, body):
 
     #oof_preds, oof_true = results['oof_preds'], results['oof_true']
     # Find best threshold on OOF predictions
-    best_thresh, best_f1, oof_pred_labels, oof_probas_used = find_best_threshold(oof_true, oof_preds)
+    #best_thresh, best_f1, oof_pred_labels, oof_probas_used = find_best_threshold(oof_true, oof_preds)
 
     # Capture the results of the testing set on the trained model
-    test_metrics, y_pred_np, y_proba_np = evaluate_model(results['fold_models'], results['X_val'], results['y_val'], best_thresh)
+    test_metrics, y_pred_np, y_proba_np = evaluate_model(results['fold_models'], results['X_val'], results['y_val'], .33)
     test_metrics['oof_preds'] = oof_preds
     test_metrics['oof_true'] = oof_true
     test_metrics['oof_fixture_ids'] = oof_fixture_ids
@@ -100,6 +101,11 @@ def callback(ch, method, properties, body):
     test_metrics['fold_auc_scores'] = results['fold_auc_scores']
     test_metrics['fold_pr_auc_scores'] = results['fold_pr_auc_scores']
 
+    if len(data['predX']) > 0:
+        pred_proba, pred_fixture_ids, pred_y = evaluate_predictions(results['fold_models'], data['predX'], data['predY'])
+        test_metrics['pred_proba'] = pred_proba
+        test_metrics['pred_fixture_ids'] = pred_fixture_ids
+        test_metrics['pred_y'] = pred_y
 
     metrics = make_serializable(test_metrics)
     y_pred = make_serializable(y_pred_np)

@@ -23,7 +23,6 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
     y = pd.read_csv(StringIO(y_csv), header=None).values.flatten()
 
     # Convert to proper formats
-    print(X)
     X = X.astype(np.float32)
     y = y.astype(int)
 
