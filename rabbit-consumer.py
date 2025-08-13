@@ -100,6 +100,7 @@ def callback(ch, method, properties, body):
     test_metrics['mean_auc'] = results['mean_auc']
     test_metrics['fold_auc_scores'] = results['fold_auc_scores']
     test_metrics['fold_pr_auc_scores'] = results['fold_pr_auc_scores']
+    test_metrics['oof_logloss'] = results['oof_logloss']
 
     if len(data['predX']) > 0:
         pred_proba, pred_fixture_ids, pred_y = evaluate_predictions(results['fold_models'], data['predX'], data['predY'])

@@ -3,7 +3,7 @@ import numpy as np
 from io import StringIO
 import lightgbm as lgb
 from lightgbm import LGBMClassifier
-from sklearn.metrics import roc_auc_score, classification_report, precision_score, recall_score, average_precision_score
+from sklearn.metrics import roc_auc_score, classification_report, precision_score, recall_score, average_precision_score, log_loss
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.inspection import permutation_importance
 import shap
@@ -181,7 +181,11 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
 
     mean_pr_auc = np.mean(fold_pr_auc_scores)
     print(f"Mean PR AUC across folds: {mean_pr_auc:.4f}")
+
     valid_oof_start = fold_size
+    oof_logloss = log_loss(oof_true[valid_oof_start:], oof_preds[valid_oof_start:])
+    print(f"Log Loss: {oof_logloss:.4f}")
+
     # Return updated results
     return {
         'fold_models': fold_models,
@@ -198,6 +202,7 @@ def light_gbm_predictor(X_csv, y_csv, PredX_csv):
         'fold_auc_scores': fold_auc_scores,
         'fold_pr_auc_scores': fold_pr_auc_scores,
         'mean_auc': mean_auc,
+        'oof_logloss': oof_logloss
     }
 
 
