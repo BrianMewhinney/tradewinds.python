@@ -82,25 +82,19 @@ def callback(ch, method, properties, body):
 
     # train the lightgbm model on the data passed in
     results = light_gbm_predictor(data['x'], data['y'], data['predX'])
-    oof_preds = results['oof_preds']
-    oof_true = results['oof_true']
-    oof_fixture_ids = results['oof_fixture_ids']
-    oof_folds = results['oof_folds']
-
-    #oof_preds, oof_true = results['oof_preds'], results['oof_true']
-    # Find best threshold on OOF predictions
-    #best_thresh, best_f1, oof_pred_labels, oof_probas_used = find_best_threshold(oof_true, oof_preds)
 
     # Capture the results of the testing set on the trained model
-    test_metrics, y_pred_np, y_proba_np = evaluate_model(results['fold_models'], results['X_val'], results['y_val'], .33)
-    test_metrics['oof_preds'] = oof_preds
-    test_metrics['oof_true'] = oof_true
-    test_metrics['oof_fixture_ids'] = oof_fixture_ids
-    test_metrics['oof_folds'] = oof_folds
+    test_metrics, y_pred_np, y_proba_np = evaluate_model(results['fold_models'], results['X_val'], results['y_val'], results['zM_val'], .33)
+    test_metrics['oof_preds'] = results['oof_preds']
+    test_metrics['oof_preds_cal'] = results['oof_preds_cal']
+    test_metrics['oof_true'] = results['oof_true']
+    test_metrics['oof_fixture_ids'] = results['oof_fixture_ids']
+    test_metrics['oof_folds'] = results['oof_folds']
     test_metrics['mean_auc'] = results['mean_auc']
     test_metrics['fold_auc_scores'] = results['fold_auc_scores']
     test_metrics['fold_pr_auc_scores'] = results['fold_pr_auc_scores']
     test_metrics['oof_logloss'] = results['oof_logloss']
+    test_metrics['platt_coeffs'] = results['platt_coeffs']
 
     if len(data['predX']) > 0:
         pred_proba, pred_fixture_ids, pred_y = evaluate_predictions(results['fold_models'], data['predX'], data['predY'])
