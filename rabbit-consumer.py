@@ -75,7 +75,7 @@ def send_to_result_queue(data):
 
 
 def callback(ch, method, properties, body):
-    #'''
+    '''
     data = json.loads(body)
     config = data['config']
     print(f"Received execution request for simulation: {config['simulationId']}  execution: {config['executionId']}  league {config['leagueId']}")
@@ -112,7 +112,7 @@ def callback(ch, method, properties, body):
     shap_importances = make_serializable(results['shap_importances'])
     send_to_result_queue((metrics, config, y_pred, y_val, id_val, feature_importances, permutation_importance, shap_importances, y_proba))
 
-    #'''
+    '''
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
